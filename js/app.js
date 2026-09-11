@@ -387,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function renderPosClientTabs() {
     const el = document.getElementById('posClientsTabs');
     if (!el) return;
-    el.innerHTML = state.clients.map(client => '<button type="button" class="person-tab ' + (client === state.activeClient ? 'active' : '') + '" onclick="window.switchClient(''' + client + ''')">' + client + '</button>').join('');
+    el.innerHTML = state.clients.map(client => `<button type="button" class="pos-client-pill ${client === state.activeClient ? 'active' : ''}" onclick="window.switchClient('${client}')">${client}</button>`).join('');
 }
 window.switchClient = function(client) {
     state.activeClient = client;
@@ -3482,6 +3482,8 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
 
 
 
