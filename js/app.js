@@ -384,31 +384,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (totalAmountFooter) totalAmountFooter.textContent = formatPrice(grandTotal);
     }
     // --- SPLIT UI LOGIC ---
-    function isBebida(catId) {
-        const config = StorageManager.getConfig();
-        const cat = config.categories.find(c => c.id === catId);
-        if (!cat) return false;
-        if (cat.type === 'bebida') return true;
-        if (cat.type === 'comida') return false;
-        return cat.name.toLowerCase().includes('bebida');
-    }
-
-    function toggleProduct(product) {
-        const isBebidaProduct = isBebida(product.category);
+    
+        function toggleProduct(product) {
         const clientId = state.activeClient;
         if (!clientId) return;
 
-        const existingIndex = state.cart.findIndex(item => {
-            if (item.clientName !== clientId) return false;
-            // Check if it's the same macro-category
-            return isBebida(item.categoryId) === isBebidaProduct;
-        });
-
-        if (existingIndex !== -1 && state.cart[existingIndex].productId === product.id) {
-            // Uncheck
+        const existingIndex = state.cart.findIndex(item => item.productId === product.id && item.clientName === clientId);
+        
+        if (existingIndex !== -1) {
             state.cart.splice(existingIndex, 1);
         } else {
-            if (existingIndex !== -1) state.cart.splice(existingIndex, 1);
             state.cart.push({
                 id: 'cart_' + Date.now(),
                 productId: product.id,
@@ -425,125 +410,76 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderSplitUI() {
-        const gridDrinks = document.getElementById('gridDrinks');
-        const gridFood = document.getElementById('gridFood');
-        if (!gridDrinks || !gridFood) return;
+        const container = document.getElementById('dynamicCategoriesContainer');
+        if (!container) return;
 
         const config = StorageManager.getConfig();
         const products = getActiveProductsList(config);
-
-        const drinks = products.filter(p => isBebida(p.category));
-        const food = products.filter(p => !isBebida(p.category));
-
-        const searchDrinks = (document.getElementById('searchDrinks').value || '').toLowerCase();
-        const searchFood = (document.getElementById('searchFood').value || '').toLowerCase();
-
-        const filteredDrinks = drinks.filter(p => p.name.toLowerCase().includes(searchDrinks));
-        const filteredFood = food.filter(p => p.name.toLowerCase().includes(searchFood));
-
-        // Render Drinks
-        gridDrinks.innerHTML = filteredDrinks.map(p => {
-            const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
-            return `
-                <div class="split-card ${isActive ? 'active drink-active' : ''}" data-id="${p.id}" onclick="window.triggerToggleProduct('${p.id}')">
-                    <span>${p.name}</span>
-                    <div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px"></i></div>
-                </div>
-            `;
-        }).join('');
-
-        // Render Food
-        gridFood.innerHTML = filteredFood.map(p => {
-            const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
-            return `
-                <div class="split-card ${isActive ? 'active food-active' : ''}" data-id="${p.id}" onclick="window.triggerToggleProduct('${p.id}')">
-                    <span>${p.name}</span>
-                    <div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px"></i></div>
-                </div>
-            `;
-        }).join('');
-
-        // Update Summary Footer
-        renderPosCart();
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-
-    function updateSplitSummary() {
-        const summaryEl = document.getElementById('posActiveSummary');
-        if (!summaryEl) return;
         
-        const clientItems = state.cart.filter(item => item.clientName === state.activeClient);
-        if (clientItems.length === 0) {
-            summaryEl.textContent = `▲ ${state.activeClient}: Ningún artículo seleccionado`;
-        } else {
-            const names = clientItems.map(i => i.name).join(' + ');
-            summaryEl.textContent = `▲ ${state.activeClient}: ${names}`;
-        }
-    }
-
-    window.triggerToggleProduct = function(productId) {
-        const config = StorageManager.getConfig();
-        const products = getActiveProductsList(config);
-        const prod = products.find(p => p.id === productId);
-        if (prod) {
-            toggleProduct(prod);
-        }
-    };
-
-    function renderClientsTabs() {
-        const tabsContainer = document.getElementById('posClientsTabs');
-        if (!tabsContainer) return;
-
-        tabsContainer.innerHTML = state.clients.map(clientName => `
-            <div class="pos-client-pill ${state.activeClient === clientName ? 'active' : ''}" data-client="${clientName}">
-                ${clientName}
-            </div>
-        `).join('');
-
-        tabsContainer.querySelectorAll('.pos-client-pill').forEach(pill => {
-            pill.addEventListener('click', () => {
-                state.activeClient = pill.dataset.client;
-                renderClientsTabs();
-                renderSplitUI();
-            });
+        const searchInput = document.getElementById('searchAll');
+        const searchVal = searchInput ? (searchInput.value || '').toLowerCase() : '';
+        
+        const filtered = products.filter(p => p.name.toLowerCase().includes(searchVal));
+        
+        const groups = {};
+        filtered.forEach(p => {
+            const catId = p.category || 'otros';
+            if(!groups[catId]) groups[catId] = [];
+            groups[catId].push(p);
         });
+        
+        let html = '';
+        
+        config.categories.forEach(cat => {
+            if (groups[cat.id] && groups[cat.id].length > 0) {
+                html += '<div class="category-block" style="margin-bottom: 5px;">' +
+                    '<h3 style="background: var(--bg-secondary); padding: 10px 12px; border-radius: 6px; color: var(--accent-primary); font-size: 1rem; margin: 0 0 10px 0; border-left: 4px solid var(--accent-primary); text-transform: uppercase;">' +
+                    cat.name + '</h3>' +
+                    '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">';
+                
+                html += groups[cat.id].map(p => {
+                    const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
+                    return '<div class="split-card ' + (isActive ? 'active drink-active' : '') + '" data-id="' + p.id + '" onclick="window.triggerToggleProduct(''' + p.id + ''')">' +
+                           '<span>' + p.name + '</span>' +
+                           '<div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px"></i></div>' +
+                           '</div>';
+                }).join('');
+                html += '</div></div>';
+                delete groups[cat.id];
+            }
+        });
+        
+        Object.keys(groups).forEach(catId => {
+            if(groups[catId].length > 0) {
+                html += '<div class="category-block" style="margin-bottom: 5px;">' +
+                    '<h3 style="background: var(--bg-secondary); padding: 10px 12px; border-radius: 6px; color: var(--accent-primary); font-size: 1rem; margin: 0 0 10px 0; border-left: 4px solid var(--accent-primary); text-transform: uppercase;">' +
+                    'Otros</h3>' +
+                    '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">';
+                
+                html += groups[catId].map(p => {
+                    const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
+                    return '<div class="split-card ' + (isActive ? 'active drink-active' : '') + '" data-id="' + p.id + '" onclick="window.triggerToggleProduct(''' + p.id + ''')">' +
+                           '<span>' + p.name + '</span>' +
+                           '<div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px"></i></div>' +
+                           '</div>';
+                }).join('');
+                html += '</div></div>';
+            }
+        });
+        
+        container.innerHTML = html;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        renderPosCart();
     }
 
-    const addBtn = document.getElementById('btnAddClient');
-    if (addBtn) {
-        // Remove old listeners by cloning
-        const newBtn = addBtn.cloneNode(true);
-        addBtn.parentNode.replaceChild(newBtn, addBtn);
-        newBtn.addEventListener('click', () => {
-            const nextIdx = state.clients.length + 1;
-            const name = 'P' + nextIdx;
-            state.clients.push(name);
-            state.activeClient = name;
-            renderClientsTabs();
+        // Attach Search listeners
+    const searchAll = document.getElementById('searchAll');
+    if (searchAll) {
+        searchAll.addEventListener('input', () => {
             renderSplitUI();
         });
     }
 
-    // Attach Search listeners
-    const sDrinks = document.getElementById('searchDrinks');
-    const sFood = document.getElementById('searchFood');
-        const clrDrinks = document.getElementById('clearSearchDrinks');
-    const clrFood = document.getElementById('clearSearchFood');
-    if (sDrinks) {
-        sDrinks.addEventListener('input', () => {
-            if (clrDrinks) clrDrinks.classList.toggle('hidden', sDrinks.value === '');
-            renderSplitUI();
-        });
-    }
-    if (sFood) {
-        sFood.addEventListener('input', () => {
-            if (clrFood) clrFood.classList.toggle('hidden', sFood.value === '');
-            renderSplitUI();
-        });
-    }
-    if (clrDrinks) clrDrinks.addEventListener('click', () => { sDrinks.value = ''; clrDrinks.classList.add('hidden'); renderSplitUI(); });
-    if (clrFood) clrFood.addEventListener('click', () => { sFood.value = ''; clrFood.classList.add('hidden'); renderSplitUI(); });
-    if (sFood) sFood.addEventListener('input', renderSplitUI);
     // Expose Cart methods
     // Expose Cart methods to window for inline onclick handlers
         function clearPosCart(confirmClear = false) {
@@ -3105,11 +3041,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (type === 'category') {
             const item = config.categories.find(c => c.id === id);
             const itemType = (item && item.type) ? item.type : 'comida';
-            html = '<div class="form-group"><label>Nombre de Categoría</label><input type="text" id="editName" value="' + item.name + '"></div>' +
-       '<div class="form-group"><label>Tipo de Menú</label><select id="editType">' +
-       '<option value="comida" ' + (itemType === 'comida' ? 'selected' : '') + '>Comida (Derecha)</option>' +
-       '<option value="bebida" ' + (itemType === 'bebida' ? 'selected' : '') + '>Bebida (Izquierda)</option>' +
-       '</select></div>';
+            html = '<div class="form-group"><label>Nombre de Categoría</label><input type="text" id="editName" value="' + item.name + '"></div>';;
         } else if (type === 'flavor') {
             const allProds = getActiveProductsList(config);
             const item = allProds.find(p => p.id === id) || (config.flavors[parentId] && config.flavors[parentId].find(f => f.id === id)) || { name: '', price: 0 };
@@ -3167,16 +3099,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (type === 'category') {
-                const typeVal = document.getElementById('editType') ? document.getElementById('editType').value : 'comida';
                 if (id) {
                     const cat = config.categories.find(c => c.id === id);
                     if (cat) {
                         cat.name = name;
-                        cat.type = typeVal;
                     }
                 } else {
                     const newId = 'cat_' + Date.now();
-                    config.categories.push({ id: newId, name, type: typeVal, active: true });
+                    config.categories.push({ id: newId, name, active: true });
                     if (!config.flavors) config.flavors = {};
                     config.flavors[newId] = [];
                     if (!config.extras) config.extras = {};
@@ -3252,9 +3182,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.addCategoryBtn.onclick = () => {
             adminEditContext = { type: 'category', id: null };
             elements.adminModalTitle.textContent = 'Nueva Categoría';
-            elements.adminModalBody.innerHTML = '<div class="form-group"><label>Nombre de Categoría</label><input type="text" id="editName" placeholder="Ej: Panes Especiales"></div>' +
-                '<div class="form-group"><label>Tipo de Menú</label>' +
-                '<select id="editType"><option value="comida">Comida (Derecha)</option><option value="bebida">Bebida (Izquierda)</option></select></div>';
+            elements.adminModalBody.innerHTML = '<div class="form-group"><label>Nombre de Categoría</label><input type="text" id="editName" placeholder="Ej: Panes Especiales"></div>';
             elements.adminModal.classList.add('open');
         };
     }
@@ -3516,6 +3444,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
+
+
+
 
 
 

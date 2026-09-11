@@ -112,41 +112,15 @@
                         </div>
                     </div>
 
-                    <!-- Body: 50/50 Split -->
-                    <div class="pos-split-body">
-                        <!-- Left: Drinks -->
-                        <div class="pos-split-col col-drinks">
-                            <div class="split-col-header">
-                                <h3>🥤 BEBIDAS</h3>
-                                <div class="split-search-box">
-                                    <i data-lucide="search"></i>
-                                    <input type="text" id="searchDrinks" placeholder="Buscar bebida..." autocomplete="off">
-                                    <button type="button" class="btn-clear-search hidden" id="clearSearchDrinks">
-                                        <i data-lucide="x"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="split-col-content" id="gridDrinks">
-                                <!-- Drink cards here -->
-                            </div>
+                    <!-- Body: Dynamic Categories -->
+                    <div class="pos-search-bar" style="padding: 10px; background: white; border-bottom: 1px solid #ddd;">
+                        <div class="split-search-box" style="margin: 0;">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="searchAll" placeholder="Buscar productos..." autocomplete="off">
                         </div>
-
-                        <!-- Right: Food -->
-                        <div class="pos-split-col col-food">
-                            <div class="split-col-header">
-                                <h3>🍔 COMIDAS</h3>
-                                <div class="split-search-box">
-                                    <i data-lucide="search"></i>
-                                    <input type="text" id="searchFood" placeholder="Buscar comida..." autocomplete="off">
-                                    <button type="button" class="btn-clear-search hidden" id="clearSearchFood">
-                                        <i data-lucide="x"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="split-col-content" id="gridFood">
-                                <!-- Food cards here -->
-                            </div>
-                        </div>
+                    </div>
+                    <div class="pos-dynamic-body" id="dynamicCategoriesContainer" style="padding: 10px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; flex: 1; background: var(--bg-primary);">
+                        <!-- Dynamic Categories Rendered Here -->
                     </div>
 
                 </div>
@@ -1117,6 +1091,7 @@ function forceCloseLogin() {
 </script></body>
 
 </html>
+
 
 
 
