@@ -394,7 +394,6 @@ window.switchClient = function(client) {
     renderPosClientTabs();
     renderSplitUI();
 };
-document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('btnAddClient');
     if (btn) {
         btn.addEventListener('click', () => {
@@ -404,7 +403,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     renderPosClientTabs();
-});
+
+    window.triggerToggleProduct = function(productId) {
+        const config = StorageManager.getConfig();
+        const products = getActiveProductsList(config);
+        const product = products.find(p => p.id === productId);
+        if (product) {
+            toggleProduct(product);
+        }
+    };
     
             function toggleProduct(product) {
         const clientId = state.activeClient;
@@ -3495,6 +3502,7 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
 
 
 
