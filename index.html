@@ -88,94 +88,77 @@
         <main class="main-content">
             <!-- New Order Page (Multi-Sector POS) -->
             <div class="page active" id="page-new-order">
-                                <div class="pos-workspace pos-workspace-vertical" id="posWorkspace">
-                    
-                    <!-- Top Controls: Service Type & Clients -->
-                    <div class="pos-top-controls">
-                        <div class="service-tabs">
-                            <button type="button" class="service-tab active" data-service="salon">SALÓN</button>
-                            <button type="button" class="service-tab" data-service="llevar">LLEVAR</button>
-                            <button type="button" class="service-tab" data-service="domicilio">DOMICILIO</button>
+                                                <div class="pos-workspace pos-workspace-split" id="posWorkspace">
+                    <!-- Top Header: Location & People -->
+                    <div class="pos-split-header">
+                        <div class="pos-location-select">
+                            <select id="posLocationDropdown">
+                                <option value="Mesa 1">Mesa 1</option>
+                                <option value="Mesa 2">Mesa 2</option>
+                                <option value="Mesa 3">Mesa 3</option>
+                                <option value="Mesa 4" selected>Mesa 4</option>
+                                <option value="Barra">Barra</option>
+                                <option value="Para llevar">Para llevar</option>
+                            </select>
                         </div>
-                        
-                        <div class="pos-clients-header">
-                            <div id="posClientsTabs" class="pos-clients-tabs">
-                                <!-- Tabs for Cliente 1, Cliente 2, etc will go here -->
-                            </div>
-                            <button type="button" id="btnAddClient" class="pos-add-client-btn">
-                                AGREGAR CLIENTE
+                        <div class="pos-people-tabs">
+                            <button type="button" class="btn-add-person" id="btnAddClient">
+                                <i data-lucide="plus"></i>
                             </button>
+                            <div id="posClientsTabs" class="pos-clients-scroll">
+                                <!-- P1, P2 pills go here -->
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Active Client Editing Area -->
-                    <div id="posActiveClientArea" class="pos-active-client-area hidden">
-                        <div class="active-client-header">
-                            <h3 id="activeClientTitle">Cliente</h3>
-                            <div class="active-client-actions">
-                                <button type="button" id="btnAcceptClient" class="btn-accept-client">
-                                    <i data-lucide="check-circle"></i> ACEPTAR
-                                </button>
-                                <button type="button" id="btnDeleteClient" class="btn-delete-client">
-                                    <i data-lucide="trash-2"></i> ELIMINAR
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Catalog & Search -->
-                        <div class="pos-catalog-column" id="posCatalogColumn">
-                            <div class="pos-search-bar-wrap">
-                                <div class="pos-search-input-box">
+                    <!-- Body: 50/50 Split -->
+                    <div class="pos-split-body">
+                        <!-- Left: Drinks -->
+                        <div class="pos-split-col col-drinks">
+                            <div class="split-col-header">
+                                <h3>🥤 BEBIDAS</h3>
+                                <div class="split-search-box">
                                     <i data-lucide="search"></i>
-                                    <input type="text" id="posProductSearch" placeholder="Buscar producto o presiona una categoría..." autocomplete="off">
-                                    <button type="button" class="pos-clear-search hidden" id="posClearSearch">
+                                    <input type="text" id="searchDrinks" placeholder="Buscar bebida..." autocomplete="off">
+                                    <button type="button" class="btn-clear-search hidden" id="clearSearchDrinks">
                                         <i data-lucide="x"></i>
                                     </button>
                                 </div>
                             </div>
-                            <div class="pos-categories-bar" id="posCategoriesBar"></div>
-                            <div class="pos-products-grid" id="posProductsGrid">
-                                <div class="empty-state">
-                                    <i data-lucide="loader-2" class="animate-spin"></i>
-                                    <p>Cargando catálogo...</p>
-                                </div>
+                            <div class="split-col-content" id="gridDrinks">
+                                <!-- Drink cards here -->
                             </div>
                         </div>
 
-                        <!-- Order Items List for this client -->
-                        <div class="pos-client-cart-area">
-                            <div class="pos-order-items-wrapper">
-                                <div class="pos-empty-cart" id="posEmptyCart">
-                                    <i data-lucide="shopping-cart"></i>
-                                    <h4>Pedido Vacío</h4>
-                                    <p>Toca los productos para agregarlos</p>
+                        <!-- Right: Food -->
+                        <div class="pos-split-col col-food">
+                            <div class="split-col-header">
+                                <h3>🍔 COMIDAS</h3>
+                                <div class="split-search-box">
+                                    <i data-lucide="search"></i>
+                                    <input type="text" id="searchFood" placeholder="Buscar comida..." autocomplete="off">
+                                    <button type="button" class="btn-clear-search hidden" id="clearSearchFood">
+                                        <i data-lucide="x"></i>
+                                    </button>
                                 </div>
-                                <div class="pos-cart-items-list" id="posCartItemsList">
-                                </div>
+                            </div>
+                            <div class="split-col-content" id="gridFood">
+                                <!-- Food cards here -->
                             </div>
                         </div>
                     </div>
 
-                    <!-- Global Order Summary & Actions (Bottom) -->
-                    <div class="pos-global-footer">
-                        <div class="pos-totals-box">
-                            <div class="pos-totals-row">
-                                <span>Artículos en orden</span>
-                                <strong id="posTotalQty">0 uds</strong>
-                            </div>
-                            <div class="pos-totals-row total-highlight">
-                                <span>TOTAL VENTA</span>
-                                <strong class="pos-grand-total" id="posGrandTotal"></strong>
-                            </div>
+                    <!-- Footer: Summary & Actions -->
+                    <div class="pos-split-footer">
+                        <div class="pos-active-summary" id="posActiveSummary">
+                            ▲ P1: Ningún artículo seleccionado
                         </div>
-                        <div class="pos-order-actions">
-                            <button type="button" class="btn-pos-clear" id="posClearCartBtn" title="Vaciar Comanda">
-                                <i data-lucide="trash-2"></i>
-                                <span>Limpiar Todo</span>
+                        <div class="pos-footer-actions">
+                            <button type="button" class="btn-location-summary" id="btnLocationSummary">
+                                📝 <span id="lblLocationSummary">Mesa (1)</span>
                             </button>
-                            <button type="button" class="btn-pos-submit" id="posSubmitOrderBtn">
-                                <i data-lucide="send"></i>
-                                <span id="posSubmitBtnText">ENVIAR A COCINA</span>
+                            <button type="button" class="btn-send-order" id="posSubmitOrderBtn">
+                                🚀 ENVIAR ORDEN
                             </button>
                         </div>
                     </div>
@@ -1121,4 +1104,5 @@
 </body>
 
 </html>
+
 

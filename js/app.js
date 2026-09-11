@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedCategory: 'all',
         searchQuery: '',
         cart: [],
-        clients: [],
-        activeClient: null,
+        clients: ['P1'],
+        activeClient: 'P1',
         isEditingClient: false,
         orderTotal: 0,
         categoryData: {},
@@ -370,292 +370,167 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Render Products Grid
-            function renderPosProducts() {
-        const grid = document.getElementById('posProductsGrid');
-        const activeArea = document.getElementById('posActiveClientArea');
-        const activeClientTitle = document.getElementById('activeClientTitle');
-        
-        if (!grid) return;
+                    function renderPosProducts() { renderSplitUI(); }
+    function renderPosCart() { }
+    // --- SPLIT UI LOGIC ---
+    function isBebida(catId) {
+        const config = StorageManager.getConfig();
+        const cat = config.categories.find(c => c.id === catId);
+        if (!cat) return false;
+        return cat.name.toLowerCase().includes('bebida');
+    }
 
-        if (!state.activeClient || !state.isEditingClient) {
-            if (activeArea) activeArea.classList.add('hidden');
-            return;
-        }
+    function toggleProduct(product) {
+        const isBebidaProduct = isBebida(product.category);
+        const clientId = state.activeClient;
+        if (!clientId) return;
 
-        if (activeArea) {
-            activeArea.classList.remove('hidden');
-            if (activeClientTitle) activeClientTitle.textContent = state.activeClient;
+        const existingIndex = state.cart.findIndex(item => {
+            if (item.clientName !== clientId) return false;
+            // Check if it's the same macro-category
+            return isBebida(item.categoryId) === isBebidaProduct;
+        });
+
+        if (existingIndex !== -1 && state.cart[existingIndex].productId === product.id) {
+            // Uncheck
+            state.cart.splice(existingIndex, 1);
+        } else {
+            if (existingIndex !== -1) state.cart.splice(existingIndex, 1);
+            state.cart.push({
+                id: 'cart_' + Date.now(),
+                productId: product.id,
+                name: product.name,
+                unitPrice: product.price || 0,
+                qty: 1,
+                subtotal: product.price || 0,
+                clientName: clientId,
+                categoryId: product.category,
+                notes: ''
+            });
         }
+        renderSplitUI();
+    }
+
+    function renderSplitUI() {
+        const gridDrinks = document.getElementById('gridDrinks');
+        const gridFood = document.getElementById('gridFood');
+        if (!gridDrinks || !gridFood) return;
 
         const config = StorageManager.getConfig();
-        let products = getActiveProductsList(config);
+        const products = getActiveProductsList(config);
 
-        if (state.selectedCategory !== 'all') {
-            products = products.filter(p => p.category === state.selectedCategory);
-        }
+        const drinks = products.filter(p => isBebida(p.category));
+        const food = products.filter(p => !isBebida(p.category));
 
-        if (state.searchQuery && state.searchQuery.trim() !== '') {
-            const q = state.searchQuery.toLowerCase().trim();
-            products = products.filter(p => p.name.toLowerCase().includes(q));
-        }
+        const searchDrinks = (document.getElementById('searchDrinks').value || '').toLowerCase();
+        const searchFood = (document.getElementById('searchFood').value || '').toLowerCase();
 
-        if (products.length === 0) {
-            grid.innerHTML = `
-                <div class="pos-empty-cart" style="grid-column: 1 / -1; min-height: 220px;">
-                    <i data-lucide="package-x"></i>
-                    <h4>No se encontraron productos</h4>
-                </div>
-            `;
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-            return;
-        }
+        const filteredDrinks = drinks.filter(p => p.name.toLowerCase().includes(searchDrinks));
+        const filteredFood = food.filter(p => p.name.toLowerCase().includes(searchFood));
 
-        grid.innerHTML = products.map(p => {
-            const inCartItem = state.cart.find(item => item.productId === p.id && item.clientName === state.activeClient);
-            const inCartBadge = inCartItem ? `<span class="pos-card-badge">${inCartItem.qty} en orden</span>` : '';
-            const catInfo = config.categories.find(c => c.id === p.category);
-            const catName = catInfo ? catInfo.name : p.category;
-
+        // Render Drinks
+        gridDrinks.innerHTML = filteredDrinks.map(p => {
+            const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
             return `
-                <div class="pos-product-card" data-product-id="${p.id}">
-                    ${inCartBadge}
-                    <div>
-                        <div class="pos-card-name">${p.name}</div>
-                        <div class="pos-card-cat">${catName}</div>
-                    </div>
-                    <div class="pos-card-footer">
-                        <span class="pos-card-price">${formatPrice(p.price || 0)}</span>
-                        <button type="button" class="pos-card-add-btn" title="Agregar">
-                            <i data-lucide="plus"></i>
-                        </button>
-                    </div>
+                <div class="split-card ${isActive ? 'active drink-active' : ''}" data-id="${p.id}" onclick="window.triggerToggleProduct('${p.id}')">
+                    <span>${p.name}</span>
+                    <div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px"></i></div>
                 </div>
             `;
         }).join('');
 
-        grid.querySelectorAll('.pos-product-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const prodId = card.dataset.productId;
-                const prod = products.find(p => p.id === prodId);
-                if (prod) {
-                    addToCart(prod);
-                }
-            });
-        });
+        // Render Food
+        gridFood.innerHTML = filteredFood.map(p => {
+            const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
+            return `
+                <div class="split-card ${isActive ? 'active food-active' : ''}" data-id="${p.id}" onclick="window.triggerToggleProduct('${p.id}')">
+                    <span>${p.name}</span>
+                    <div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px"></i></div>
+                </div>
+            `;
+        }).join('');
 
+        // Update Summary Footer
+        updateSplitSummary();
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
-    // Add to Cart
-    function addToCart(product, qty = 1) {
-        if (!state.activeClient) {
-            showNotification('Primero agrega o selecciona un cliente', 'error');
-            return;
-        }
-
-        const existing = state.cart.find(item => item.productId === product.id && (!item.notes || item.notes === '') && item.clientName === state.activeClient);
-        if (existing) {
-            existing.qty += qty;
-            existing.subtotal = existing.qty * existing.unitPrice;
+    function updateSplitSummary() {
+        const summaryEl = document.getElementById('posActiveSummary');
+        if (!summaryEl) return;
+        
+        const clientItems = state.cart.filter(item => item.clientName === state.activeClient);
+        if (clientItems.length === 0) {
+            summaryEl.textContent = `▲ ${state.activeClient}: Ningún artículo seleccionado`;
         } else {
-            state.cart.push({
-                id: generateId(),
-                productId: product.id,
-                name: product.name,
-                category: product.category,
-                unitPrice: product.price || 0,
-                qty: qty,
-                notes: '',
-                extras: [],
-                subtotal: (product.price || 0) * qty,
-                clientName: state.activeClient
-            });
-        }
-
-        if (navigator.vibrate) navigator.vibrate(25);
-        renderPosCart();
-        renderPosProducts();
-    }
-
-    // Update Cart Item Quantity
-    function updateCartItemQty(cartItemId, delta) {
-        const item = state.cart.find(i => i.id === cartItemId);
-        if (!item) return;
-
-        item.qty += delta;
-        if (item.qty <= 0) {
-            state.cart = state.cart.filter(i => i.id !== cartItemId);
-        } else {
-            item.subtotal = item.qty * item.unitPrice;
-        }
-
-        renderPosCart();
-        renderPosProducts();
-    }
-
-    // Remove Item from Cart
-    function removeCartItem(cartItemId) {
-        state.cart = state.cart.filter(i => i.id !== cartItemId);
-        renderPosCart();
-        renderPosProducts();
-    }
-
-    // Clear Cart
-    function clearPosCart(confirmClear = false) {
-        if (confirmClear && state.cart.length > 0) {
-            if (!confirm('┬┐Deseas vaciar todos los productos del pedido?')) return;
-        }
-        state.cart = [];
-        state.clients = [];
-        state.activeClient = null;
-        state.appendingOrderId = null;
-        updateSubmitButtonText();
-        renderClientsTabs();
-        renderPosCart();
-        renderPosProducts();
-    }
-
-    function updateSubmitButtonText() {
-        const btnText = document.getElementById('posSubmitBtnText');
-        if (!btnText) return;
-        if (state.appendingOrderId) {
-            const orig = StorageManager.getOrders().find(o => o.id == state.appendingOrderId);
-            btnText.textContent = `A├æADIR A ${orig ? orig.orderNumber : 'ORDEN'}`;
-        } else {
-            btnText.textContent = 'ENVIAR A COCINA';
+            const names = clientItems.map(i => i.name).join(' + ');
+            summaryEl.textContent = `▲ ${state.activeClient}: ${names}`;
         }
     }
 
-    // Render Cart
-
-    function renderPosCart() {
-        const emptyState = document.getElementById('posEmptyCart');
-        const listContainer = document.getElementById('posCartItemsList');
-        const totalQtyEl = document.getElementById('posTotalQty');
-        const grandTotalEl = document.getElementById('posGrandTotal');
-        const totalAmountFooter = document.getElementById('totalAmount');
-
-        let totalQty = 0;
-        let grandTotal = 0;
-
-        state.cart.forEach(item => {
-            totalQty += item.qty;
-            grandTotal += item.subtotal;
-        });
-
-        state.orderTotal = grandTotal;
-
-        if (totalQtyEl) totalQtyEl.textContent = `${totalQty} uds`;
-        if (grandTotalEl) grandTotalEl.textContent = formatPrice(grandTotal);
-        if (totalAmountFooter) totalAmountFooter.textContent = formatPrice(grandTotal);
-
-        if (!listContainer || !emptyState) return;
-
-        // ONLY SHOW ITEMS FOR ACTIVE CLIENT IN THIS VIEW
-        const activeClientItems = state.cart.filter(item => item.clientName === state.activeClient);
-
-        if (activeClientItems.length === 0) {
-            emptyState.style.display = 'flex';
-            listContainer.innerHTML = '';
-            return;
+    window.triggerToggleProduct = function(productId) {
+        const config = StorageManager.getConfig();
+        const products = getActiveProductsList(config);
+        const prod = products.find(p => p.id === productId);
+        if (prod) {
+            toggleProduct(prod);
         }
-
-        emptyState.style.display = 'none';
-
-        let html = '';
-        html += activeClientItems.map(item => `
-            <div class="pos-cart-item" data-cart-item-id="${item.id}">
-                <div class="pos-cart-item-top">
-                    <div style="flex: 1;">
-                        <div class="pos-cart-item-name">${item.name}</div>
-                        <div class="pos-cart-item-unit-price">${formatPrice(item.unitPrice)} c/u</div>
-                        ${item.notes ? `<div class="pos-cart-item-note"><i data-lucide="message-square" style="width: 10px; height: 10px; display: inline; vertical-align: middle;"></i> ${item.notes}</div>` : ''}
-                    </div>
-                    <div class="pos-cart-item-actions">
-                        <button type="button" class="pos-item-action-btn delete" title="Eliminar" onclick="window.removeCartItem('${item.id}')">
-                            <i data-lucide="x" style="width: 16px; height: 16px;"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="pos-cart-item-bottom">
-                    <div class="pos-cart-stepper">
-                        <button type="button" class="pos-stepper-btn" onclick="window.updateCartItemQty('${item.id}', -1)">
-                            <i data-lucide="minus" style="width: 14px; height: 14px;"></i>
-                        </button>
-                        <span class="pos-stepper-qty">${item.qty}</span>
-                        <button type="button" class="pos-stepper-btn" onclick="window.updateCartItemQty('${item.id}', 1)">
-                            <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
-                        </button>
-                    </div>
-                    <div class="pos-cart-item-subtotal">${formatPrice(item.subtotal)}</div>
-                </div>
-            </div>
-        `).join('');
-
-        listContainer.innerHTML = html;
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
+    };
 
     function renderClientsTabs() {
         const tabsContainer = document.getElementById('posClientsTabs');
         if (!tabsContainer) return;
 
         tabsContainer.innerHTML = state.clients.map(clientName => `
-            <div class="pos-client-tab ${state.activeClient === clientName ? 'active' : ''}" data-client="${clientName}">
+            <div class="pos-client-pill ${state.activeClient === clientName ? 'active' : ''}" data-client="${clientName}">
                 ${clientName}
             </div>
         `).join('');
 
-        tabsContainer.querySelectorAll('.pos-client-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                state.activeClient = tab.dataset.client;
-                state.isEditingClient = true; // Open editor
+        tabsContainer.querySelectorAll('.pos-client-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                state.activeClient = pill.dataset.client;
                 renderClientsTabs();
-                renderPosProducts();
-                renderPosCart();
+                renderSplitUI();
             });
         });
     }
 
-    // Replace the button block
     const addBtn = document.getElementById('btnAddClient');
     if (addBtn) {
-        addBtn.addEventListener('click', () => {
-            const name = 'CLIENTE ' + (state.clients.length + 1);
-            if (!state.clients.includes(name)) {
-                state.clients.push(name);
-            }
+        // Remove old listeners by cloning
+        const newBtn = addBtn.cloneNode(true);
+        addBtn.parentNode.replaceChild(newBtn, addBtn);
+        newBtn.addEventListener('click', () => {
+            const nextIdx = state.clients.length + 1;
+            const name = 'P' + nextIdx;
+            state.clients.push(name);
             state.activeClient = name;
-            state.isEditingClient = true;
             renderClientsTabs();
-            renderPosProducts();
-            renderPosCart();
+            renderSplitUI();
         });
     }
 
-    const btnAcceptClient = document.getElementById('btnAcceptClient');
-    if (btnAcceptClient) {
-        btnAcceptClient.addEventListener('click', () => {
-            state.isEditingClient = false;
-            renderClientsTabs();
-            renderPosProducts(); // Will hide the active area
+    // Attach Search listeners
+    const sDrinks = document.getElementById('searchDrinks');
+    const sFood = document.getElementById('searchFood');
+        const clrDrinks = document.getElementById('clearSearchDrinks');
+    const clrFood = document.getElementById('clearSearchFood');
+    if (sDrinks) {
+        sDrinks.addEventListener('input', () => {
+            if (clrDrinks) clrDrinks.classList.toggle('hidden', sDrinks.value === '');
+            renderSplitUI();
         });
     }
-
-    const btnDeleteClient = document.getElementById('btnDeleteClient');
-    if (btnDeleteClient) {
-        btnDeleteClient.addEventListener('click', () => {
-            if (confirm('¿Eliminar ' + state.activeClient + ' y todos sus productos?')) {
-                state.cart = state.cart.filter(item => item.clientName !== state.activeClient);
-                state.clients = state.clients.filter(c => c !== state.activeClient);
-                state.activeClient = state.clients.length > 0 ? state.clients[0] : null;
-                state.isEditingClient = false;
-                renderClientsTabs();
-                renderPosProducts();
-                renderPosCart();
-            }
+    if (sFood) {
+        sFood.addEventListener('input', () => {
+            if (clrFood) clrFood.classList.toggle('hidden', sFood.value === '');
+            renderSplitUI();
         });
     }
+    if (clrDrinks) clrDrinks.addEventListener('click', () => { sDrinks.value = ''; clrDrinks.classList.add('hidden'); renderSplitUI(); });
+    if (clrFood) clrFood.addEventListener('click', () => { sFood.value = ''; clrFood.classList.add('hidden'); renderSplitUI(); });
+    if (sFood) sFood.addEventListener('input', renderSplitUI);
     // Expose Cart methods
     // Expose Cart methods to window for inline onclick handlers
     window.addToCart = addToCart;
@@ -945,7 +820,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Reset order total
         state.orderTotal = 0;
-        updateOrderTotal();
+        if(typeof updateOrderTotal === "function") updateOrderTotal(); else updateSplitSummary();
 
 
 
@@ -3587,7 +3462,7 @@ document.addEventListener('DOMContentLoaded', () => {
             () => {
                 if (state.currentPage === 'checkout') renderCheckoutPage();
                 if (state.currentPage === 'history') renderHistoryPage();
-                if (state.currentPage === 'new-order') updateOrderTotal();
+                if (state.currentPage === 'new-order') if(typeof updateOrderTotal === "function") updateOrderTotal(); else updateSplitSummary();
                 if (state.currentPage === 'expenses') renderExpensesPage();
             },
             // Config callback (Admin changes from other devices)
@@ -3596,7 +3471,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (state.currentPage === 'expenses') renderExpensesPage();
                 if (state.currentPage === 'new-order') {
                     initializeCategories();
-                    updateOrderTotal();
+                    if(typeof updateOrderTotal === "function") updateOrderTotal(); else updateSplitSummary();
                 }
                 console.log('Config synced from cloud');
             },
@@ -3608,9 +3483,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize
     renderPosCategories();
     renderPosProducts();
-    updateOrderTotal();
+    if(typeof updateOrderTotal === "function") updateOrderTotal(); else updateSplitSummary();
   }
 });
+
+
+
+
+
+
 
 
 

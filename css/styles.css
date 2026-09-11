@@ -4086,3 +4086,219 @@ option {
 .pos-products-grid {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
 }
+/* NEW SPLIT LAYOUT (MOBILE FIRST COMANDA RÁPIDA) */
+.pos-workspace-split {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #1e1e1e;
+    color: white;
+    font-family: 'Inter', sans-serif;
+    padding: 0;
+}
+
+.pos-split-header {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 10px;
+    gap: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.pos-location-select select {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background: #f1f5f9;
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+}
+
+.pos-people-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    overflow-x: auto;
+}
+
+.btn-add-person {
+    background: #e2e8f0;
+    border: none;
+    border-radius: 8px;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #475569;
+    flex-shrink: 0;
+}
+
+.pos-clients-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+}
+
+.pos-client-pill {
+    padding: 6px 14px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 14px;
+    color: #64748b;
+    cursor: pointer;
+    border: 1px solid #cbd5e1;
+    white-space: nowrap;
+}
+
+.pos-client-pill.active {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+
+.pos-split-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    gap: 10px;
+    padding: 10px;
+}
+
+.pos-split-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.split-col-header h3 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    text-align: center;
+    background: white;
+    color: #2563eb;
+    padding: 8px;
+    border-radius: 6px;
+    font-weight: bold;
+}
+.col-food .split-col-header h3 {
+    color: #b45309;
+    background: #fef3c7;
+}
+
+.split-search-box {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.split-search-box input {
+    width: 100%;
+    padding: 10px 10px 10px 32px;
+    border-radius: 6px;
+    border: none;
+    outline: none;
+}
+
+.split-search-box i[data-lucide="search"] {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: #94a3b8;
+}
+
+.split-col-content {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.split-card {
+    background: white;
+    color: #333;
+    padding: 12px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 48px;
+}
+
+.split-card.active.drink-active {
+    background: #dbeafe;
+    color: #1e3a8a;
+    border: 1px solid #bfdbfe;
+}
+.split-card.active.food-active {
+    background: #ffedd5;
+    color: #9a3412;
+    border: 1px solid #fed7aa;
+}
+
+.split-card-check {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+.split-card.active .split-card-check {
+    display: flex;
+}
+.drink-active .split-card-check { background: #3b82f6; }
+.food-active .split-card-check { background: #f59e0b; }
+
+.pos-split-footer {
+    background: white;
+    border-top: 1px solid #ddd;
+    color: #333;
+    padding: 12px;
+}
+
+.pos-active-summary {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.pos-footer-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-location-summary {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 12px;
+    font-weight: bold;
+    color: #333;
+    cursor: pointer;
+}
+
+.btn-send-order {
+    flex: 1;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+}
