@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
     // App State
-    const state = {
+    window.appState = {
         currentPage: 'new-order',
         serviceType: 'salon',
         selectedCategory: 'all',
@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedPaymentMethod: 'efectivo',
         editingNoteItemId: null
     };
+    const state = window.appState;
 
     // Listen for config loaded from cloud
     window.addEventListener('configLoadedFromCloud', () => {
@@ -832,6 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset order total
         state.orderTotal = 0;
         if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
+    console.log('REACHED END OF APP.JS');
 
 
 
@@ -3476,6 +3478,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (state.currentPage === 'checkout') renderCheckoutPage();
                 if (state.currentPage === 'history') renderHistoryPage();
                 if (state.currentPage === 'new-order') if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
+    console.log('REACHED END OF APP.JS');
                 if (state.currentPage === 'expenses') renderExpensesPage();
             },
             // Config callback (Admin changes from other devices)
@@ -3485,6 +3488,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (state.currentPage === 'new-order') {
                     initializeCategories();
                     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
+    console.log('REACHED END OF APP.JS');
                 }
                 console.log('Config synced from cloud');
             },
@@ -3497,8 +3501,12 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPosCategories();
     renderPosProducts();
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
+    console.log('REACHED END OF APP.JS');
   }
 });
+
+
+
 
 
 
