@@ -370,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Render Products Grid
-        function renderPosProducts() {
+            function renderPosProducts() {
         const grid = document.getElementById('posProductsGrid');
         const activeArea = document.getElementById('posActiveClientArea');
         const activeClientTitle = document.getElementById('activeClientTitle');
@@ -400,37 +400,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (products.length === 0) {
-            grid.innerHTML = 
+            grid.innerHTML = `
                 <div class="pos-empty-cart" style="grid-column: 1 / -1; min-height: 220px;">
                     <i data-lucide="package-x"></i>
                     <h4>No se encontraron productos</h4>
                 </div>
-            ;
+            `;
             if (typeof lucide !== 'undefined') lucide.createIcons();
             return;
         }
 
         grid.innerHTML = products.map(p => {
             const inCartItem = state.cart.find(item => item.productId === p.id && item.clientName === state.activeClient);
-            const inCartBadge = inCartItem ? <span class="pos-card-badge"> + inCartItem.qty +  en orden</span> : '';
+            const inCartBadge = inCartItem ? `<span class="pos-card-badge">${inCartItem.qty} en orden</span>` : '';
             const catInfo = config.categories.find(c => c.id === p.category);
             const catName = catInfo ? catInfo.name : p.category;
 
-            return 
-                <div class="pos-product-card" data-product-id=" + p.id + ">
-                     + inCartBadge + 
+            return `
+                <div class="pos-product-card" data-product-id="${p.id}">
+                    ${inCartBadge}
                     <div>
-                        <div class="pos-card-name"> + p.name + </div>
-                        <div class="pos-card-cat"> + catName + </div>
+                        <div class="pos-card-name">${p.name}</div>
+                        <div class="pos-card-cat">${catName}</div>
                     </div>
                     <div class="pos-card-footer">
-                        <span class="pos-card-price"> + formatPrice(p.price || 0) + </span>
+                        <span class="pos-card-price">${formatPrice(p.price || 0)}</span>
                         <button type="button" class="pos-card-add-btn" title="Agregar">
                             <i data-lucide="plus"></i>
                         </button>
                     </div>
                 </div>
-            ;
+            `;
         }).join('');
 
         grid.querySelectorAll('.pos-product-card').forEach(card => {
@@ -463,7 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         state.orderTotal = grandTotal;
 
-        if (totalQtyEl) totalQtyEl.textContent = totalQty + ' uds';
+        if (totalQtyEl) totalQtyEl.textContent = `${totalQty} uds`;
         if (grandTotalEl) grandTotalEl.textContent = formatPrice(grandTotal);
         if (totalAmountFooter) totalAmountFooter.textContent = formatPrice(grandTotal);
 
@@ -481,34 +481,34 @@ document.addEventListener('DOMContentLoaded', () => {
         emptyState.style.display = 'none';
 
         let html = '';
-        html += activeClientItems.map(item => 
-            <div class="pos-cart-item" data-cart-item-id=" + item.id + ">
+        html += activeClientItems.map(item => `
+            <div class="pos-cart-item" data-cart-item-id="${item.id}">
                 <div class="pos-cart-item-top">
                     <div style="flex: 1;">
-                        <div class="pos-cart-item-name"> + item.name + </div>
-                        <div class="pos-cart-item-unit-price"> + formatPrice(item.unitPrice) +  c/u</div>
-                         + (item.notes ? <div class="pos-cart-item-note"><i data-lucide="message-square" style="width: 10px; height: 10px; display: inline; vertical-align: middle;"></i>  + item.notes + </div> : '') + 
+                        <div class="pos-cart-item-name">${item.name}</div>
+                        <div class="pos-cart-item-unit-price">${formatPrice(item.unitPrice)} c/u</div>
+                        ${item.notes ? `<div class="pos-cart-item-note"><i data-lucide="message-square" style="width: 10px; height: 10px; display: inline; vertical-align: middle;"></i> ${item.notes}</div>` : ''}
                     </div>
                     <div class="pos-cart-item-actions">
-                        <button type="button" class="pos-item-action-btn delete" title="Eliminar" onclick="window.removeCartItem(' + item.id + ')">
+                        <button type="button" class="pos-item-action-btn delete" title="Eliminar" onclick="window.removeCartItem('${item.id}')">
                             <i data-lucide="x" style="width: 16px; height: 16px;"></i>
                         </button>
                     </div>
                 </div>
                 <div class="pos-cart-item-bottom">
                     <div class="pos-cart-stepper">
-                        <button type="button" class="pos-stepper-btn" onclick="window.updateCartItemQty(' + item.id + ', -1)">
+                        <button type="button" class="pos-stepper-btn" onclick="window.updateCartItemQty('${item.id}', -1)">
                             <i data-lucide="minus" style="width: 14px; height: 14px;"></i>
                         </button>
-                        <span class="pos-stepper-qty"> + item.qty + </span>
-                        <button type="button" class="pos-stepper-btn" onclick="window.updateCartItemQty(' + item.id + ', 1)">
+                        <span class="pos-stepper-qty">${item.qty}</span>
+                        <button type="button" class="pos-stepper-btn" onclick="window.updateCartItemQty('${item.id}', 1)">
                             <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
                         </button>
                     </div>
-                    <div class="pos-cart-item-subtotal"> + formatPrice(item.subtotal) + </div>
+                    <div class="pos-cart-item-subtotal">${formatPrice(item.subtotal)}</div>
                 </div>
             </div>
-        ).join('');
+        `).join('');
 
         listContainer.innerHTML = html;
         if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -518,11 +518,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const tabsContainer = document.getElementById('posClientsTabs');
         if (!tabsContainer) return;
 
-        tabsContainer.innerHTML = state.clients.map(clientName => 
-            <div class="pos-client-tab  + (state.activeClient === clientName ? 'active' : '') + " data-client=" + clientName + ">
-                 + clientName + 
+        tabsContainer.innerHTML = state.clients.map(clientName => `
+            <div class="pos-client-tab ${state.activeClient === clientName ? 'active' : ''}" data-client="${clientName}">
+                ${clientName}
             </div>
-        ).join('');
+        `).join('');
 
         tabsContainer.querySelectorAll('.pos-client-tab').forEach(tab => {
             tab.addEventListener('click', () => {
@@ -574,7 +574,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
     // Expose Cart methods
     // Expose Cart methods to window for inline onclick handlers
     window.addToCart = addToCart;
@@ -3530,5 +3529,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateOrderTotal();
   }
 });
+
 
 
