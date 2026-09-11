@@ -3598,5 +3598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initialize
+    renderPosCategories();
+    renderPosProducts();
     updateOrderTotal();
 });
