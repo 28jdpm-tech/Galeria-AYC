@@ -3287,6 +3287,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (elements.confirmAdminLogin) {
         const handleLogin = () => {
+            alert('Intentando login con: ' + elements.adminPasswordInput.value);
             const config = StorageManager.getConfig();
             const input = elements.adminPasswordInput.value;
 
@@ -3315,6 +3316,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         elements.confirmAdminLogin.addEventListener('click', handleLogin);
+        console.log('Listener for confirmAdminLogin attached');
         elements.adminPasswordInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleLogin();
         });
@@ -3497,6 +3499,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
   }
 });
+
+
 
 
 
