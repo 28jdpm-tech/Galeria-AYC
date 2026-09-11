@@ -446,6 +446,88 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
+    // Add to Cart
+    function addToCart(product, qty = 1) {
+        if (!state.activeClient) {
+            showNotification('Primero agrega o selecciona un cliente', 'error');
+            return;
+        }
+
+        const existing = state.cart.find(item => item.productId === product.id && (!item.notes || item.notes === '') && item.clientName === state.activeClient);
+        if (existing) {
+            existing.qty += qty;
+            existing.subtotal = existing.qty * existing.unitPrice;
+        } else {
+            state.cart.push({
+                id: generateId(),
+                productId: product.id,
+                name: product.name,
+                category: product.category,
+                unitPrice: product.price || 0,
+                qty: qty,
+                notes: '',
+                extras: [],
+                subtotal: (product.price || 0) * qty,
+                clientName: state.activeClient
+            });
+        }
+
+        if (navigator.vibrate) navigator.vibrate(25);
+        renderPosCart();
+        renderPosProducts();
+    }
+
+    // Update Cart Item Quantity
+    function updateCartItemQty(cartItemId, delta) {
+        const item = state.cart.find(i => i.id === cartItemId);
+        if (!item) return;
+
+        item.qty += delta;
+        if (item.qty <= 0) {
+            state.cart = state.cart.filter(i => i.id !== cartItemId);
+        } else {
+            item.subtotal = item.qty * item.unitPrice;
+        }
+
+        renderPosCart();
+        renderPosProducts();
+    }
+
+    // Remove Item from Cart
+    function removeCartItem(cartItemId) {
+        state.cart = state.cart.filter(i => i.id !== cartItemId);
+        renderPosCart();
+        renderPosProducts();
+    }
+
+    // Clear Cart
+    function clearPosCart(confirmClear = false) {
+        if (confirmClear && state.cart.length > 0) {
+            if (!confirm('┬┐Deseas vaciar todos los productos del pedido?')) return;
+        }
+        state.cart = [];
+        state.clients = [];
+        state.activeClient = null;
+        state.appendingOrderId = null;
+        updateSubmitButtonText();
+        renderClientsTabs();
+        renderPosCart();
+        renderPosProducts();
+    }
+
+    function updateSubmitButtonText() {
+        const btnText = document.getElementById('posSubmitBtnText');
+        if (!btnText) return;
+        if (state.appendingOrderId) {
+            const orig = StorageManager.getOrders().find(o => o.id == state.appendingOrderId);
+            btnText.textContent = `A├æADIR A ${orig ? orig.orderNumber : 'ORDEN'}`;
+        } else {
+            btnText.textContent = 'ENVIAR A COCINA';
+        }
+    }
+
+    // Render Cart
+
     function renderPosCart() {
         const emptyState = document.getElementById('posEmptyCart');
         const listContainer = document.getElementById('posCartItemsList');
@@ -3529,6 +3611,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateOrderTotal();
   }
 });
+
 
 
 
