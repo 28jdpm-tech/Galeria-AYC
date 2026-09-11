@@ -3601,4 +3601,5 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPosCategories();
     renderPosProducts();
     updateOrderTotal();
+  }
 });
