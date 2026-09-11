@@ -223,6 +223,8 @@ document.addEventListener('DOMContentLoaded', () => {
             elements.pages.forEach(p => p.classList.remove('active'));
             const targetPage = document.getElementById(`page-${page}`);
             if (targetPage) targetPage.classList.add('active');
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) mainContent.scrollTop = 0;
 
             state.currentPage = page;
             elements.navDrawer.classList.remove('open');
@@ -2978,6 +2980,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentAdminTab = tab.dataset.tab;
             const target = document.getElementById(`panel-${currentAdminTab}`);
             if (target) target.classList.add('active');
+            if (mainContent) mainContent.scrollTop = 0;
             renderAdminPage();
         });
     });
@@ -3504,3 +3507,5 @@ document.addEventListener('DOMContentLoaded', () => {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
