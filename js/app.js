@@ -371,7 +371,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Render Products Grid
                     function renderPosProducts() { renderSplitUI(); }
-    function renderPosCart() { }
+    function renderPosCart() {
+        const totalAmountFooter = document.getElementById('totalAmount');
+        let grandTotal = 0;
+        state.cart.forEach(item => {
+            grandTotal += item.subtotal;
+        });
+        state.orderTotal = grandTotal;
+        if (totalAmountFooter) totalAmountFooter.textContent = formatPrice(grandTotal);
+    }
     // --- SPLIT UI LOGIC ---
     function isBebida(catId) {
         const config = StorageManager.getConfig();
@@ -451,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
 
         // Update Summary Footer
-        updateSplitSummary();
+        renderPosCart();
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
@@ -820,7 +828,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Reset order total
         state.orderTotal = 0;
-        if(typeof updateOrderTotal === "function") updateOrderTotal(); else updateSplitSummary();
+        if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
 
 
 
@@ -3462,7 +3470,7 @@ document.addEventListener('DOMContentLoaded', () => {
             () => {
                 if (state.currentPage === 'checkout') renderCheckoutPage();
                 if (state.currentPage === 'history') renderHistoryPage();
-                if (state.currentPage === 'new-order') if(typeof updateOrderTotal === "function") updateOrderTotal(); else updateSplitSummary();
+                if (state.currentPage === 'new-order') if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
                 if (state.currentPage === 'expenses') renderExpensesPage();
             },
             // Config callback (Admin changes from other devices)
@@ -3471,7 +3479,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (state.currentPage === 'expenses') renderExpensesPage();
                 if (state.currentPage === 'new-order') {
                     initializeCategories();
-                    if(typeof updateOrderTotal === "function") updateOrderTotal(); else updateSplitSummary();
+                    if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
                 }
                 console.log('Config synced from cloud');
             },
@@ -3483,9 +3491,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize
     renderPosCategories();
     renderPosProducts();
-    if(typeof updateOrderTotal === "function") updateOrderTotal(); else updateSplitSummary();
+    if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
   }
 });
+
+
 
 
 
