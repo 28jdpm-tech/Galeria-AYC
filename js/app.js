@@ -9,83 +9,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // App State
     const state = {
         currentPage: 'new-order',
-        serviceType: null,
+        serviceType: 'salon',
+        selectedCategory: 'all',
+        searchQuery: '',
+        cart: [],
+        clients: [],
+        activeClient: null,
         orderTotal: 0,
         categoryData: {},
         rowCounter: 0,
         isAdminAuthenticated: false,
         pendingAdminAction: null,
+        pendingAdminPage: null,
         appendingOrderId: null,
-        selectedPaymentMethod: 'efectivo'
+        selectedPaymentMethod: 'efectivo',
+        editingNoteItemId: null
     };
 
-    // Note: Default category creation is now handled in data.js
-    // Firebase sync will restore admin config when localStorage is empty
-
-    // Listen for config loaded from cloud (after cache clear)
+    // Listen for config loaded from cloud
     window.addEventListener('configLoadedFromCloud', () => {
-        console.log('ðŸ”„ Config loaded from cloud, refreshing UI...');
-        initializeCategories();
-        updateOrderTotal();
+        console.log('🔄 Config loaded from cloud, refreshing UI...');
+        renderPosCategories();
+        renderPosProducts();
+        renderPosCart();
         if (typeof lucide !== 'undefined') lucide.createIcons();
     });
 
-    // Initialize all categories (including those added dynamically or via sync)
     function initializeCategories() {
-        const config = StorageManager.getConfig();
-        const container = document.getElementById('orderCategories');
-        if (!container) return;
-
-        // Save existing category rows to prevent data loss on refresh
-        const existingData = state.categoryData || {};
-
-        container.innerHTML = config.categories.map(category => `
-            <div class="category-section" data-category="${category.id}">
-                <div class="category-header">
-                    <div class="category-title">
-                        <span class="category-name">${category.name.toUpperCase()}</span>
-                        <span class="category-row-count" id="count-${category.id}" data-count="0">0</span>
-                        <span class="category-total-price" data-value="0">$0</span>
-                    </div>
-                    <button class="add-row-btn">
-                        <span>CLIENTE</span>
-                        <i data-lucide="plus"></i>
-                    </button>
-                </div>
-                <div class="category-rows-container"></div>
-            </div>
-        `).join('');
-
-        const sections = container.querySelectorAll('.category-section');
-        sections.forEach(section => {
-            const catId = section.dataset.category;
-
-            // Re-bind state or init new
-            if (!state.categoryData[catId]) {
-                state.categoryData[catId] = { rows: [] };
-            }
-
-            // Bind click event
-            const addBtn = section.querySelector('.add-row-btn');
-            addBtn.addEventListener('click', () => {
-                addNewRow(catId);
-            });
-
-            // Restore previous rows if they exist (for live updates)
-            if (existingData[catId] && existingData[catId].rows.length > 0) {
-                const rowsContainer = section.querySelector('.category-rows-container');
-                existingData[catId].rows.forEach(rowData => {
-                    const rowEl = createRowElement(catId, rowData.id);
-                    rowsContainer.appendChild(rowEl);
-                });
-                updateCategoryTotal(catId);
-            }
-        });
-
+        renderPosCategories();
+        renderPosProducts();
+        renderPosCart();
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
-
-    initializeCategories();
 
     // DOM Elements
     const elements = {
@@ -99,7 +54,19 @@ document.addEventListener('DOMContentLoaded', () => {
         categorySections: document.querySelectorAll('.category-section'),
         totalAmount: document.getElementById('totalAmount'),
         sendToKitchenBtn: document.getElementById('sendToKitchenBtn'),
-        orderCustomerName: document.getElementById('orderCustomerName'),
+        btnAddClient: document.getElementById('btnAddClient'),
+        posClientsTabs: document.getElementById('posClientsTabs'),
+        posProductSearch: document.getElementById('posProductSearch'),
+        posClearSearch: document.getElementById('posClearSearch'),
+        posCategoriesBar: document.getElementById('posCategoriesBar'),
+        posProductsGrid: document.getElementById('posProductsGrid'),
+        posClearCartBtn: document.getElementById('posClearCartBtn'),
+        posSubmitOrderBtn: document.getElementById('posSubmitOrderBtn'),
+        itemNoteModal: document.getElementById('itemNoteModal'),
+        closeItemNoteModal: document.getElementById('closeItemNoteModal'),
+        closeItemNoteOverlay: document.getElementById('closeItemNoteOverlay'),
+        cancelItemNoteModal: document.getElementById('cancelItemNoteModal'),
+        saveItemNoteModal: document.getElementById('saveItemNoteModal'),
         // Checkout / Payment
         toPrintCount: document.getElementById('toPrintCount'),
         pendingPaymentCount: document.getElementById('pendingPaymentCount'),
@@ -296,544 +263,584 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function refreshOrderPageUI() {
-        const config = StorageManager.getConfig();
-        const sections = document.querySelectorAll('.category-section');
-
-        // Refresh Category Headers (Names/Icons)
-        sections.forEach(section => {
-            const categoryId = section.dataset.category;
-            const catInfo = config.categories.find(c => c.id === categoryId);
-            if (catInfo) {
-                const nameEl = section.querySelector('.category-name');
-                if (nameEl) nameEl.textContent = catInfo.name.toUpperCase();
-            }
-
-            // Refresh existing rows flavor/drink dropdowns
-            const flavors = config.flavors[categoryId] || [];
-            const flavorOptions = flavors.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
-
-            section.querySelectorAll('.client-row').forEach(rowEl => {
-                const rowId = rowEl.dataset.rowId;
-                const rowData = state.categoryData[categoryId].rows.find(r => r.id === rowId);
-
-                rowEl.querySelectorAll('.flavor-select').forEach((select, idx) => {
-                    const currentVal = rowData ? rowData.blocks[idx] : select.value;
-                    select.innerHTML = `<option value="">Sel.</option>${flavorOptions}`;
-                    select.value = currentVal;
-                });
-            });
-
-            updateCategoryTotal(categoryId);
-        });
-        updateOrderTotal();
+        renderPosCategories();
+        renderPosProducts();
+        renderPosCart();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     // ============================================
-    // Service Tabs
+    // Multi-Sector POS Order Taking Engine
     // ============================================
 
-    elements.serviceTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            elements.serviceTabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            state.serviceType = tab.dataset.service;
+    // Service Tabs Setup
+    function setupServiceTabs() {
+        document.querySelectorAll('.service-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.service-tab').forEach(t => t.classList.remove('active'));
+                const service = tab.dataset.service;
+                state.serviceType = service;
+                document.querySelectorAll(`.service-tab[data-service="${service}"]`).forEach(t => t.classList.add('active'));
+            });
         });
-    });
+    }
+    setupServiceTabs();
 
-    // ============================================
-    // Create Row Element Function
-    // ============================================
+    // Search Input Setup
+    if (elements.posProductSearch) {
+        elements.posProductSearch.addEventListener('input', (e) => {
+            state.searchQuery = e.target.value.trim();
+            if (elements.posClearSearch) {
+                elements.posClearSearch.classList.toggle('hidden', state.searchQuery === '');
+            }
+            renderPosProducts();
+        });
+    }
 
-    function createRowElement(category, rowId) {
-        const rowData = {
-            id: rowId,
-            qty: 1,
-            blocks: ['', '', ''],
-            extras: [],
-            observations: []
-        };
+    if (elements.posClearSearch) {
+        elements.posClearSearch.addEventListener('click', () => {
+            if (elements.posProductSearch) elements.posProductSearch.value = '';
+            state.searchQuery = '';
+            elements.posClearSearch.classList.add('hidden');
+            renderPosProducts();
+            if (elements.posProductSearch) elements.posProductSearch.focus();
+        });
+    }
+
+    // Get Active Products from Config or Fallback
+    function getActiveProductsList(config) {
+        if (config.products && config.products.length > 0) {
+            return config.products.filter(p => p.active !== false);
+        }
+        const list = [];
+        Object.keys(config.flavors || {}).forEach(catId => {
+            (config.flavors[catId] || []).forEach(f => {
+                if (f.active !== false) {
+                    list.push({
+                        id: f.id,
+                        name: f.name,
+                        price: f.price || 0,
+                        category: catId,
+                        icon: '🍴',
+                        active: true
+                    });
+                }
+            });
+        });
+        return list;
+    }
+
+    // Render Categories Filter Chips
+    function renderPosCategories() {
+        const container = elements.posCategoriesBar || document.getElementById('posCategoriesBar');
+        if (!container) return;
 
         const config = StorageManager.getConfig();
-        state.categoryData[category].rows.push(rowData);
+        const allProducts = getActiveProductsList(config);
+        const totalCount = allProducts.length;
 
-        const rowEl = document.createElement('div');
-        rowEl.className = 'client-row';
-        rowEl.dataset.rowId = rowId;
+        let html = `
+            <button type="button" class="pos-cat-chip ${state.selectedCategory === 'all' ? 'active' : ''}" data-cat="all">
+                <span>Todos</span>
+                <span class="pos-cat-chip-count">${totalCount}</span>
+            </button>
+        `;
 
-        const isBebida = getCategoryType(category) === 'bebidas';
-        const flavors = config.flavors[category] || [];
-        const flavorOptions = flavors.map(f => 
-            `<option value="${f.id}">${f.name}${isBebida && f.price ? ' (' + formatPrice(f.price) + ')' : ''}</option>`
-        ).join('');
+        config.categories.forEach(cat => {
+            const count = allProducts.filter(p => p.category === cat.id).length;
+            const isActive = state.selectedCategory === cat.id ? 'active' : '';
+            html += `
+                <button type="button" class="pos-cat-chip ${isActive}" data-cat="${cat.id}">
+                    <span>${cat.name}</span>
+                    <span class="pos-cat-chip-count">${count}</span>
+                </button>
+            `;
+        });
 
-        // Use category-specific extras and observations
-        const categoryExtras = (config.extras && config.extras[category]) || [];
-        const extraOptions = categoryExtras.filter(e => e.active !== false).map(e =>
-            `<option value="${e.id}">${e.name}</option>`
-        ).join('');
+        container.innerHTML = html;
 
-        const categoryObs = (config.observations && config.observations[category]) || [];
-        const obsOptions = categoryObs.filter(o => o.active !== false).map(o =>
-            `<option value="${o.id}">${o.name}</option>`
-        ).join('');
+        container.querySelectorAll('.pos-cat-chip').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.selectedCategory = btn.dataset.cat;
+                renderPosCategories();
+                renderPosProducts();
+            });
+        });
+    }
 
-        rowEl.innerHTML = `
-            <div class="row-fields ${isBebida ? 'bebidas-row' : ''}">
-                <div class="field-col flavor-col">
-                    <label>${isBebida ? 'PRODUCTO / BEBIDA' : (category === 'combos' ? 'HB' : 'S1')}</label>
-                    <div class="field-content">
-                        <select class="flavor-select" data-block="1">
-                            <option value="">Sel.</option>
-                            ${flavorOptions}
-                        </select>
-                    </div>
+    // Render Products Grid
+    function renderPosProducts() {
+        const grid = document.getElementById('posProductsGrid');
+        const catalogCol = document.getElementById('posCatalogColumn');
+        const workspace = document.querySelector('.pos-workspace');
+        
+        if (!grid) return;
+
+        if (!state.activeClient) {
+            if (catalogCol) catalogCol.style.display = 'none';
+            if (workspace) workspace.classList.add('no-catalog');
+            return;
+        }
+
+        if (catalogCol) catalogCol.style.display = 'flex';
+        if (workspace) workspace.classList.remove('no-catalog');
+
+        const config = StorageManager.getConfig();
+        let products = getActiveProductsList(config);
+
+        if (state.selectedCategory !== 'all') {
+            products = products.filter(p => p.category === state.selectedCategory);
+        }
+
+        if (state.searchQuery && state.searchQuery.trim() !== '') {
+            const q = state.searchQuery.toLowerCase().trim();
+            products = products.filter(p => p.name.toLowerCase().includes(q));
+        }
+
+        if (products.length === 0) {
+            grid.innerHTML = `
+                <div class="pos-empty-cart" style="grid-column: 1 / -1; min-height: 220px;">
+                    <i data-lucide="package-x"></i>
+                    <h4>No se encontraron productos</h4>
+                    <p>Prueba con otra búsqueda o selecciona otra categoría</p>
                 </div>
-                ${!isBebida ? `
-                <div class="field-col flavor-col">
-                    <label>${category === 'combos' ? 'PE' : 'S2'}</label>
-                    <div class="field-content">
-                        <select class="flavor-select" data-block="2">
-                            <option value="">Sel.</option>
-                            ${flavorOptions}
-                        </select>
+            `;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            return;
+        }
+
+        grid.innerHTML = products.map(p => {
+            const inCartItem = state.cart.find(item => item.productId === p.id);
+            const inCartBadge = inCartItem ? `<span class="pos-card-badge">${inCartItem.qty} en orden</span>` : '';
+            const catInfo = config.categories.find(c => c.id === p.category);
+            const catName = catInfo ? catInfo.name : p.category;
+
+            return `
+                <div class="pos-product-card" data-product-id="${p.id}">
+                    ${inCartBadge}
+                    <div>
+                        <div class="pos-card-name">${p.name}</div>
+                        <div class="pos-card-cat">${catName}</div>
                     </div>
-                </div>
-                <div class="field-col flavor-col">
-                    <label>${category === 'combos' ? 'SA' : 'S3'}</label>
-                    <div class="field-content">
-                        <select class="flavor-select" data-block="3">
-                            <option value="">Sel.</option>
-                            ${flavorOptions}
-                        </select>
-                    </div>
-                </div>
-                <div class="field-col flavor-col">
-                    <label>ADI</label>
-                    <div class="field-content">
-                        <div class="multi-select-trigger" id="extra-trigger-${rowId}" data-type="extra">
-                            <span class="selected-text">Sel.</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="field-col flavor-col">
-                    <label>OBS</label>
-                    <div class="field-content">
-                        <div class="multi-select-trigger" id="obs-trigger-${rowId}" data-type="obs">
-                            <span class="selected-text">Sel.</span>
-                        </div>
-                    </div>
-                </div>
-                ` : ''}
-                <div class="field-col action-col">
-                    <label>&nbsp;</label>
-                    <div class="field-content">
-                        <button class="delete-row-btn" title="Eliminar">
-                            <i data-lucide="x"></i>
+                    <div class="pos-card-footer">
+                        <span class="pos-card-price">${formatPrice(p.price || 0)}</span>
+                        <button type="button" class="pos-card-add-btn" title="Agregar">
+                            <i data-lucide="plus"></i>
                         </button>
                     </div>
                 </div>
+            `;
+        }).join('');
+
+        grid.querySelectorAll('.pos-product-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const prodId = card.dataset.productId;
+                const prod = products.find(p => p.id === prodId);
+                if (prod) {
+                    addToCart(prod);
+                }
+            });
+        });
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    // Add to Cart
+    function addToCart(product, qty = 1) {
+        if (!state.activeClient) {
+            showNotification('Primero agrega o selecciona un cliente', 'error');
+            return;
+        }
+
+        const existing = state.cart.find(item => item.productId === product.id && (!item.notes || item.notes === '') && item.clientName === state.activeClient);
+        if (existing) {
+            existing.qty += qty;
+            existing.subtotal = existing.qty * existing.unitPrice;
+        } else {
+            state.cart.push({
+                id: generateId(),
+                productId: product.id,
+                name: product.name,
+                category: product.category,
+                unitPrice: product.price || 0,
+                qty: qty,
+                notes: '',
+                extras: [],
+                subtotal: (product.price || 0) * qty,
+                clientName: state.activeClient
+            });
+        }
+
+        if (navigator.vibrate) navigator.vibrate(25);
+        renderPosCart();
+        renderPosProducts();
+    }
+
+    // Update Cart Item Quantity
+    function updateCartItemQty(cartItemId, delta) {
+        const item = state.cart.find(i => i.id === cartItemId);
+        if (!item) return;
+
+        item.qty += delta;
+        if (item.qty <= 0) {
+            state.cart = state.cart.filter(i => i.id !== cartItemId);
+        } else {
+            item.subtotal = item.qty * item.unitPrice;
+        }
+
+        renderPosCart();
+        renderPosProducts();
+    }
+
+    // Remove Item from Cart
+    function removeCartItem(cartItemId) {
+        state.cart = state.cart.filter(i => i.id !== cartItemId);
+        renderPosCart();
+        renderPosProducts();
+    }
+
+    // Clear Cart
+    function clearPosCart(confirmClear = false) {
+        if (confirmClear && state.cart.length > 0) {
+            if (!confirm('¿Deseas vaciar todos los productos del pedido?')) return;
+        }
+        state.cart = [];
+        state.clients = [];
+        state.activeClient = null;
+        state.appendingOrderId = null;
+        updateSubmitButtonText();
+        renderClientsTabs();
+        renderPosCart();
+        renderPosProducts();
+    }
+
+    function updateSubmitButtonText() {
+        const btnText = document.getElementById('posSubmitBtnText');
+        if (!btnText) return;
+        if (state.appendingOrderId) {
+            const orig = StorageManager.getOrders().find(o => o.id == state.appendingOrderId);
+            btnText.textContent = `AÑADIR A ${orig ? orig.orderNumber : 'ORDEN'}`;
+        } else {
+            btnText.textContent = 'ENVIAR A COCINA';
+        }
+    }
+
+    // Render Cart
+    function renderPosCart() {
+        const emptyState = document.getElementById('posEmptyCart');
+        const listContainer = document.getElementById('posCartItemsList');
+        const totalQtyEl = document.getElementById('posTotalQty');
+        const grandTotalEl = document.getElementById('posGrandTotal');
+        const totalAmountFooter = elements.totalAmount || document.getElementById('totalAmount');
+
+        let totalQty = 0;
+        let grandTotal = 0;
+
+        state.cart.forEach(item => {
+            totalQty += item.qty;
+            grandTotal += item.subtotal;
+        });
+
+        state.orderTotal = grandTotal;
+
+        if (totalQtyEl) totalQtyEl.textContent = `${totalQty} uds`;
+        if (grandTotalEl) grandTotalEl.textContent = formatPrice(grandTotal);
+        if (totalAmountFooter) totalAmountFooter.textContent = formatPrice(grandTotal);
+
+        if (!listContainer || !emptyState) return;
+
+        if (state.cart.length === 0) {
+            emptyState.style.display = 'flex';
+            listContainer.innerHTML = '';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+
+        const clientsObj = {};
+        state.clients.forEach(c => clientsObj[c] = []);
+        state.cart.forEach(item => {
+            if (!clientsObj[item.clientName]) clientsObj[item.clientName] = [];
+            clientsObj[item.clientName].push(item);
+        });
+
+        let html = '';
+        for (const [clientName, items] of Object.entries(clientsObj)) {
+            if (items.length === 0) continue;
+            
+            html += `
+                <div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-gold); padding: 12px 0 4px; border-bottom: 1px solid var(--border-subtle); margin-top: 8px; text-transform: uppercase;">
+                    <i data-lucide="user" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Cliente: ${clientName}
+                </div>
+            `;
+
+            html += items.map(item => `
+                <div class="pos-cart-item" data-cart-item-id="${item.id}">
+                    <div class="pos-cart-item-top">
+                        <div style="flex: 1;">
+                            <div class="pos-cart-item-name">${item.name}</div>
+                            <div class="pos-cart-item-unit-price">${formatPrice(item.unitPrice)} c/u</div>
+                            ${item.notes ? `<div class="pos-cart-item-note"><i data-lucide="message-square" style="width: 10px; height: 10px; display: inline; vertical-align: middle;"></i> ${item.notes}</div>` : ''}
+                        </div>
+                        <div class="pos-cart-item-actions">
+                            <button type="button" class="pos-item-action-btn" title="Agregar nota" onclick="window.openItemNoteModal('${item.id}')">
+                                <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
+                            </button>
+                            <button type="button" class="pos-item-action-btn delete" title="Eliminar" onclick="window.removeCartItem('${item.id}')">
+                                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="pos-cart-item-bottom">
+                        <div class="pos-cart-stepper">
+                            <button type="button" class="pos-stepper-btn" onclick="window.updateCartItemQty('${item.id}', -1)">
+                                <i data-lucide="minus" style="width: 14px; height: 14px;"></i>
+                            </button>
+                            <span class="pos-stepper-qty">${item.qty}</span>
+                            <button type="button" class="pos-stepper-btn" onclick="window.updateCartItemQty('${item.id}', 1)">
+                                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                            </button>
+                        </div>
+                        <div class="pos-cart-item-subtotal">${formatPrice(item.subtotal)}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        listContainer.innerHTML = html;
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function renderClientsTabs() {
+        const tabsContainer = elements.posClientsTabs || document.getElementById('posClientsTabs');
+        if (!tabsContainer) return;
+
+        tabsContainer.innerHTML = state.clients.map(clientName => `
+            <div class="pos-client-tab ${state.activeClient === clientName ? 'active' : ''}" data-client="${clientName}">
+                ${clientName}
             </div>
-        `;
+        `).join('');
 
-        setupRowListeners(rowEl, category, rowId);
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-        return rowEl;
-    }
-
-    function setupRowListeners(rowEl, category, rowId) {
-        const getRowData = () => state.categoryData[category].rows.find(r => r.id === rowId);
-
-        const deleteBtn = rowEl.querySelector('.delete-row-btn');
-        deleteBtn.addEventListener('click', () => {
-            const rows = state.categoryData[category].rows;
-            const idx = rows.findIndex(r => r.id === rowId);
-            if (idx > -1) rows.splice(idx, 1);
-            rowEl.remove();
-            updateCategoryTotal(category);
-            updateOrderTotal();
-        });
-
-        rowEl.querySelectorAll('.flavor-select').forEach(select => {
-            select.addEventListener('change', () => {
-                const data = getRowData();
-                if (data) {
-                    const blockIndex = parseInt(select.dataset.block) - 1;
-                    data.blocks[blockIndex] = select.value;
-                    updateCategoryTotal(category);
-                    updateOrderTotal();
-                }
+        tabsContainer.querySelectorAll('.pos-client-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                state.activeClient = tab.dataset.client;
+                renderClientsTabs();
+                renderPosProducts();
             });
         });
-
-        // Modal-based Selection Handlers
-        const extraTrigger = rowEl.querySelector(`#extra-trigger-${rowId}`);
-        if (extraTrigger) {
-            extraTrigger.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const data = getRowData();
-                if (!data) return;
-                const config = StorageManager.getConfig();
-                const options = (config.extras && config.extras[category]) || [];
-                // Use Floating Dropdown
-                openFloatingDropdown(extraTrigger, 'Adicionales', options, data.extras, (selectedIds) => {
-                    data.extras = selectedIds;
-                    const count = data.extras.length;
-                    let displayText = 'Sel.';
-                    if (count === 1) {
-                        const item = options.find(o => o.id === selectedIds[0]);
-                        displayText = item ? item.name : 'Sel.';
-                    } else if (count > 1) {
-                        displayText = count;
-                    }
-                    extraTrigger.querySelector('.selected-text').textContent = displayText;
-                    updateCategoryTotal(category);
-                    updateOrderTotal();
-                });
-            });
-        }
-
-        const obsTrigger = rowEl.querySelector(`#obs-trigger-${rowId}`);
-        if (obsTrigger) {
-            obsTrigger.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const data = getRowData();
-                if (!data) return;
-                const config = StorageManager.getConfig();
-                const options = (config.observations && config.observations[category]) || [];
-                // Use Floating Dropdown
-                openFloatingDropdown(obsTrigger, 'Observaciones', options, data.observations, (selectedIds) => {
-                    data.observations = selectedIds;
-                    const count = data.observations.length;
-                    let displayText = 'Sel.';
-                    if (count === 1) {
-                        const item = options.find(o => o.id === selectedIds[0]);
-                        displayText = item ? item.name : 'Sel.';
-                    } else if (count > 1) {
-                        displayText = count;
-                    }
-                    obsTrigger.querySelector('.selected-text').textContent = displayText;
-                    updateCategoryTotal(category);
-                    updateOrderTotal();
-                });
-            });
-        }
     }
 
-    // ============================================
-    // Price Calculations
-    // ============================================
-
-    function updateCategoryTotal(category) {
-        const config = StorageManager.getConfig();
-        const section = document.querySelector(`.category-section[data-category="${category}"]`);
-        if (!section) return;
-        const priceEl = section.querySelector('.category-total-price');
-        const countEl = section.querySelector('.category-row-count');
-
-        let total = 0;
-        let itemCount = 0;
-        state.categoryData[category].rows.forEach(data => {
-            const rowEl = document.querySelector(`.client-row[data-row-id="${data.id}"]`);
-            const filledBlocks = data.blocks.filter(b => b !== '').length;
-            const hasExtras = data.extras && data.extras.length > 0;
-            const hasObs = data.observations && data.observations.length > 0;
-
-            if (filledBlocks > 0 || hasExtras || hasObs) {
-                itemCount += (data.qty || 1);
-            }
-
-            let rowPrice = 0;
-            let sizeLabel = '--';
-
-            // Calculate extras price regardless of flavor selection
-            const categoryExtras = config.extras[category] || [];
-            const extraPrice = data.extras.reduce((sum, eId) => {
-                const eItem = categoryExtras.find(ex => ex.id === eId);
-                return sum + (eItem ? eItem.price : 0);
-            }, 0);
-
-            const categoryObs = config.observations[category] || [];
-            const obsPrice = data.observations.reduce((sum, oId) => {
-                const oItem = categoryObs.find(obs => obs.id === oId);
-                return sum + (oItem ? (oItem.price || 0) : 0);
-            }, 0);
-
-            if (filledBlocks > 0) {
-                if (getCategoryType(category) === 'bebidas') {
-                    const flavorId = data.blocks[0];
-                    const flavor = (config.flavors[category] || []).find(f => f.id === flavorId);
-                    rowPrice = (flavor ? (flavor.price || 0) : 0) * data.qty;
-                    sizeLabel = '';
-                } else {
-                    const selectedFlavors = data.blocks.filter(b => b !== '').map(bId => {
-                        const fl = config.flavors[category].find(f => f.id === bId);
-                        return fl ? fl.name : '';
-                    });
-                    const size = calculateSize(filledBlocks, category, selectedFlavors);
-                    sizeLabel = size;
-                    let basePrice = (config.prices[category] && config.prices[category][size]) || 0;
-
-                    const catType = getCategoryType(category);
-                    if (catType === 'salchipapas') {
-                        // If observations exist with price > 0, the observation price takes the value of the salchipapa
-                        if (data.observations.length > 0 && obsPrice > 0) {
-                            rowPrice = (obsPrice + extraPrice) * data.qty;
-                        } else {
-                            // No observations, or observations with price 0: use base price
-                            rowPrice = (basePrice + extraPrice + obsPrice) * data.qty;
-                        }
-                    } else {
-                        rowPrice = (basePrice + extraPrice + obsPrice) * data.qty;
-                    }
+    if (elements.btnAddClient || document.getElementById('btnAddClient')) {
+        const btn = elements.btnAddClient || document.getElementById('btnAddClient');
+        btn.addEventListener('click', () => {
+            const defaultName = 'Cliente ' + (state.clients.length + 1);
+            const clientName = prompt('Nombre del cliente:', defaultName);
+            if (clientName && clientName.trim() !== '') {
+                const name = clientName.trim().toUpperCase();
+                if (!state.clients.includes(name)) {
+                    state.clients.push(name);
                 }
-            } else if (extraPrice > 0 || obsPrice > 0) {
-                // Extras-only order (no flavor selected)
-                rowPrice = (extraPrice + obsPrice) * data.qty;
-                sizeLabel = 'ADI';
-            }
-
-            total += rowPrice;
-
-            if (rowEl) {
-                const rowPriceEl = rowEl.querySelector('.row-total-price');
-                const rowSizeEl = rowEl.querySelector('.row-size-badge');
-                if (rowPriceEl) rowPriceEl.textContent = rowPrice > 0 ? formatPrice(rowPrice) : '$0';
-                if (rowSizeEl) {
-                    rowSizeEl.textContent = sizeLabel;
-                    rowSizeEl.className = `row-size-badge size-${sizeLabel.toLowerCase()}`;
-                }
+                state.activeClient = name;
+                renderClientsTabs();
+                renderPosProducts();
+                renderPosCart();
             }
         });
+    }
 
-        priceEl.textContent = total > 0 ? formatPrice(total) : '$0';
-        priceEl.dataset.value = total;
+    // Expose Cart methods to window for inline onclick handlers
+    window.addToCart = addToCart;
+    window.updateCartItemQty = updateCartItemQty;
+    window.removeCartItem = removeCartItem;
+    window.clearPosCart = clearPosCart;
 
-        if (countEl) {
-            countEl.textContent = itemCount;
-            countEl.dataset.count = itemCount;
+    // Item Note Modal Logic
+    window.openItemNoteModal = function (cartItemId) {
+        const item = state.cart.find(i => i.id === cartItemId);
+        if (!item) return;
+        state.editingNoteItemId = cartItemId;
+
+        const modal = elements.itemNoteModal || document.getElementById('itemNoteModal');
+        const prodNameEl = document.getElementById('itemNoteModalProductName');
+        const inputEl = document.getElementById('itemNoteModalInput');
+        const tagsContainer = document.getElementById('itemNoteQuickTags');
+
+        if (prodNameEl) prodNameEl.textContent = `${item.qty}x ${item.name}`;
+        if (inputEl) inputEl.value = item.notes || '';
+
+        if (tagsContainer) {
+            const config = StorageManager.getConfig();
+            const obs = (config.observations && config.observations[item.category]) || [];
+            tagsContainer.innerHTML = obs.map(o => `
+                <span class="quick-obs-chip" onclick="window.appendQuickTag('${o.name}')">${o.name}</span>
+            `).join('');
         }
+
+        if (modal) modal.classList.add('open');
+        if (inputEl) inputEl.focus();
+    };
+
+    window.appendQuickTag = function (tagName) {
+        const inputEl = document.getElementById('itemNoteModalInput');
+        if (!inputEl) return;
+        if (inputEl.value.trim() === '') {
+            inputEl.value = tagName;
+        } else {
+            inputEl.value += ', ' + tagName;
+        }
+    };
+
+    function saveItemNoteModal() {
+        if (!state.editingNoteItemId) return;
+        const item = state.cart.find(i => i.id === state.editingNoteItemId);
+        const inputEl = document.getElementById('itemNoteModalInput');
+        if (item && inputEl) {
+            item.notes = inputEl.value.trim();
+        }
+        const modal = elements.itemNoteModal || document.getElementById('itemNoteModal');
+        if (modal) modal.classList.remove('open');
+        state.editingNoteItemId = null;
+        renderPosCart();
     }
 
-    function updateOrderTotal() {
-        let total = 0;
-        document.querySelectorAll('.category-total-price').forEach(el => {
-            total += parseInt(el.dataset.value || 0);
-        });
-        state.orderTotal = total;
-        if (elements.totalAmount) elements.totalAmount.textContent = formatPrice(total);
+    function closeItemNoteModalFunc() {
+        const modal = elements.itemNoteModal || document.getElementById('itemNoteModal');
+        if (modal) modal.classList.remove('open');
+        state.editingNoteItemId = null;
     }
 
-    function addNewRow(category) {
-        state.rowCounter++;
-        const rowId = `row_${state.rowCounter}`;
-        const section = document.querySelector(`.category-section[data-category="${category}"]`);
-        if (!section) return;
-        const container = section.querySelector('.category-rows-container');
-        const rowEl = createRowElement(category, rowId);
-        container.appendChild(rowEl);
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+    if (elements.closeItemNoteModal) elements.closeItemNoteModal.addEventListener('click', closeItemNoteModalFunc);
+    if (elements.closeItemNoteOverlay) elements.closeItemNoteOverlay.addEventListener('click', closeItemNoteModalFunc);
+    if (elements.cancelItemNoteModal) elements.cancelItemNoteModal.addEventListener('click', closeItemNoteModalFunc);
+    if (elements.saveItemNoteModal) elements.saveItemNoteModal.addEventListener('click', saveItemNoteModal);
+
+    // Wire Clear Cart Button
+    if (elements.posClearCartBtn) {
+        elements.posClearCartBtn.addEventListener('click', () => clearPosCart(true));
     }
 
-    // Category management removed since it's handled by initializeCategories()
-    // No extra code here.
-
-    // ============================================
-    // Send to Kitchen
-    // ============================================
-
+    // Submit Order (Send to Kitchen & Create Ticket)
     let pendingOrder = null;
 
-    if (elements.sendToKitchenBtn) {
-        elements.sendToKitchenBtn.addEventListener('click', async () => {
-            // Show loading indicator
-            const originalBtnText = elements.sendToKitchenBtn.innerHTML;
-            elements.sendToKitchenBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Enviando...';
-            elements.sendToKitchenBtn.disabled = true;
+    async function submitOrder() {
+        if (state.cart.length === 0) {
+            showNotification('⚠️ Agrega productos al pedido antes de enviar', 'error');
+            return;
+        }
+
+        const customerText = state.clients.join(' - ').trim().toUpperCase();
+
+        if (!state.serviceType) state.serviceType = 'salon';
+
+        if (!state.appendingOrderId && state.clients.length === 0) {
+            showNotification('⚠️ Ingresa al menos un cliente en la orden', 'error');
+            return;
+        }
+
+        const submitBtn = elements.posSubmitOrderBtn || elements.sendToKitchenBtn || document.getElementById('posSubmitOrderBtn');
+        const origText = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Enviando...';
+            submitBtn.disabled = true;
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
 
-            try {
-                const config = StorageManager.getConfig();
-                const items = [];
+        try {
+            const config = StorageManager.getConfig();
+            const items = state.cart.map(i => {
+                const catInfo = config.categories.find(c => c.id === i.category);
+                return {
+                    id: i.id,
+                    productId: i.productId,
+                    name: i.name,
+                    category: i.category,
+                    categoryName: catInfo ? catInfo.name : i.category,
+                    unitPrice: i.unitPrice,
+                    qty: i.qty,
+                    notes: i.notes,
+                    observations: i.notes,
+                    extras: i.extras || [],
+                    price: i.subtotal,
+                    clientName: i.clientName
+                };
+            });
 
-                Object.keys(state.categoryData).forEach(category => {
-                    const categoryInfo = config.categories.find(c => c.id === category);
-
-                    state.categoryData[category].rows.forEach(rowData => {
-                        const filledBlocks = rowData.blocks.filter(b => b !== '');
-                        const hasExtras = rowData.extras && rowData.extras.length > 0;
-                        const hasObs = rowData.observations && rowData.observations.length > 0;
-
-                        // Skip if no selections at all
-                        if (filledBlocks.length === 0 && !hasExtras && !hasObs) return;
-
-                        const isBebida = getCategoryType(category) === 'bebidas';
-                        const flavorNames = rowData.blocks.filter(b => b).map(b => {
-                            const flavor = (config.flavors[category] || []).find(f => f.id === b);
-                            return flavor ? flavor.name : '';
-                        });
-
-                        let size = '';
-
-                        if (filledBlocks.length > 0) {
-                            size = isBebida ? '' : calculateSize(filledBlocks.length, category, flavorNames);
-                        } else {
-                            size = 'ADI'; // Extras-only
-                        }
-
-                        const categoryExtras = config.extras[category] || [];
-                        // Map IDs to Names
-                        const extraNames = rowData.extras.map(eId => {
-                            const item = categoryExtras.find(e => e.id === eId);
-                            return item ? item.name : '';
-                        }).filter(Boolean);
-
-                        const extraPrice = rowData.extras.reduce((sum, eId) => {
-                            const item = categoryExtras.find(e => e.id === eId);
-                            return sum + (item ? item.price : 0);
-                        }, 0);
-
-                        const categoryObs = config.observations[category] || [];
-                        const obsNames = rowData.observations.map(oId => {
-                            const item = categoryObs.find(o => o.id === oId);
-                            return item ? item.name : '';
-                        }).filter(Boolean);
-                        // Join multiple obs with comma
-                        const obsLabel = obsNames.join(', ');
-
-                        const obsPrice = rowData.observations.reduce((sum, oId) => {
-                            const item = categoryObs.find(o => o.id === oId);
-                            return sum + (item ? (item.price || 0) : 0);
-                        }, 0);
-
-                        let basePrice = 0;
-                        if (filledBlocks.length > 0) {
-                            if (isBebida) {
-                                const flavor = (config.flavors[category] || []).find(f => f.id === rowData.blocks[0]);
-                                basePrice = flavor ? (flavor.price || 0) : 0;
-                            } else {
-                                basePrice = (config.prices[category] && config.prices[category][size]) || 0;
-                            }
-                        }
-
-                        let rowPrice = 0;
-                        const catType = getCategoryType(category);
-                        if (filledBlocks.length === 0) {
-                            // Extras-only
-                            rowPrice = (extraPrice + obsPrice) * rowData.qty;
-                        } else if (catType === 'salchipapas') {
-                            // If observations exist with price > 0, the observation price takes the value of the salchipapa
-                            if (rowData.observations.length > 0 && obsPrice > 0) {
-                                rowPrice = (obsPrice + extraPrice) * rowData.qty;
-                            } else {
-                                // No observations, or observations with price 0: use base price
-                                rowPrice = (basePrice + extraPrice + obsPrice) * rowData.qty;
-                            }
-                        } else {
-                            rowPrice = (basePrice + extraPrice + obsPrice) * rowData.qty;
-                        }
-
-                        items.push({
-                            id: generateId(),
-                            category: category,
-                            categoryName: categoryInfo.name,
-                            categoryIcon: categoryInfo.icon,
-                            qty: rowData.qty,
-                            size: size,
-                            flavors: flavorNames,
-                            extras: extraNames,
-                            observations: obsLabel,
-                            price: rowPrice
-                        });
+            if (state.appendingOrderId) {
+                const originalOrder = StorageManager.getOrders().find(o => o.id == state.appendingOrderId);
+                if (originalOrder) {
+                    const updatedItems = [...originalOrder.items, ...items];
+                    const updatedTotalPrice = updatedItems.reduce((sum, item) => sum + item.price, 0);
+                    StorageManager.updateOrder(originalOrder.id, {
+                        items: updatedItems,
+                        totalPrice: updatedTotalPrice
                     });
-                });
 
-                if (!state.serviceType && !state.appendingOrderId) {
-                    showNotification('âš ï¸ Selecciona: SalÃ³n, Llevar o Domicilio', 'error');
-                    return;
-                }
-
-                if (items.length === 0) {
-                    showNotification('Selecciona al menos un producto');
-                    return;
-                }
-
-                // Validate customer name/table number (mandatory)
-                const customerCode = elements.orderCustomerName?.value.trim();
-                if (!state.appendingOrderId && !customerCode) {
-                    showNotification('âš ï¸ Ingresa nombre del cliente o nÃºmero de mesa', 'error');
-                    elements.orderCustomerName?.focus();
-                    return;
-                }
-
-                // Direct Process Logic (Bypass Ticket Modal)
-                if (state.appendingOrderId) {
-                    const originalOrder = StorageManager.getOrders().find(o => o.id == state.appendingOrderId);
-                    if (originalOrder) {
-                        const updatedItems = [...originalOrder.items, ...items]; // items here are already newItems
-                        const updatedTotalPrice = updatedItems.reduce((sum, item) => sum + item.price, 0);
-                        StorageManager.updateOrder(originalOrder.id, {
-                            items: updatedItems,
-                            totalPrice: updatedTotalPrice
-                        });
-                        showNotification(`Pedido ${originalOrder.orderNumber} actualizado`);
-
-                        // --- PRINT NEW ITEMS ONLY ---
-                        const partialOrder = {
-                            orderNumber: `${originalOrder.orderNumber} (ADI)`,
-                            sequenceNumber: originalOrder.sequenceNumber,
-                            serviceType: state.serviceType, // Use current UI selection (e.g. Llevar)
-                            customerInfo: originalOrder.customerInfo,
-                            createdAt: new Date().toISOString(),
-                            items: items, // Only new items collected from current UI
-                            totalPrice: items.reduce((s, i) => s + i.price, 0),
-                            isAppending: true,
-                            isPartial: true, // Mark as temporary partial order
-                            checkoutPrinted: false, // Ensure it shows in 'To Print'
-                            paid: false
-                        };
-
-                        // Save partial order so it appears in "Imprimir" list
-                        StorageManager.addOrder(partialOrder);
-
-                        showNotification("AdiciÃ³n enviada. Imprimir desde Cobros.");
-                    }
-                    state.appendingOrderId = null;
-                } else {
-                    const customerCodeUpper = customerCode.toUpperCase();
-                    const seqNum = await generateOrderNumber(); // Await Firebase counter
-                    const orderIdentifier = customerCodeUpper || seqNum;
-
-                    const newOrder = {
-                        orderNumber: orderIdentifier,
-                        sequenceNumber: seqNum,
+                    // Create partial order for printing
+                    const partialOrder = {
+                        orderNumber: `${originalOrder.orderNumber} (ADI)`,
+                        sequenceNumber: originalOrder.sequenceNumber,
                         serviceType: state.serviceType,
-                        customerInfo: customerCodeUpper,
+                        customerInfo: originalOrder.customerInfo,
+                        createdAt: new Date().toISOString(),
                         items: items,
-                        status: 'pending',
-                        totalPrice: items.reduce((sum, item) => sum + item.price, 0),
-                        createdBy: 'Cajero 1',
-                        needsPrint: true,
-                        printed: false,
+                        totalPrice: items.reduce((s, i) => s + i.price, 0),
+                        isAppending: true,
+                        isPartial: true,
                         checkoutPrinted: false,
-                        isAppending: false,
-                        createdAt: new Date().toISOString()
+                        paid: false
                     };
-                    StorageManager.addOrder(newOrder);
-                    showNotification(`Pedido ${newOrder.orderNumber} enviado a cocina`);
+                    StorageManager.addOrder(partialOrder);
+                    showNotification(`Adición agregada al pedido ${originalOrder.orderNumber}`);
                 }
+                state.appendingOrderId = null;
+            } else {
+                const seqNum = await generateOrderNumber();
+                const orderIdentifier = customerText || seqNum;
 
-                resetAllCategories();
-            } catch (error) {
-                console.error('Error sending order:', error);
-                showNotification('âš ï¸ Error al enviar pedido', 'error');
-            } finally {
-                // Restore button
-                elements.sendToKitchenBtn.innerHTML = originalBtnText;
-                elements.sendToKitchenBtn.disabled = false;
+                const newOrder = {
+                    orderNumber: orderIdentifier,
+                    sequenceNumber: seqNum,
+                    serviceType: state.serviceType,
+                    customerInfo: customerText,
+                    customerName: customerText,
+                    items: items,
+                    status: 'pending',
+                    totalPrice: state.orderTotal,
+                    createdBy: 'Cajero 1',
+                    needsPrint: true,
+                    printed: false,
+                    checkoutPrinted: false,
+                    isAppending: false,
+                    createdAt: new Date().toISOString()
+                };
+
+                StorageManager.addOrder(newOrder);
+                showNotification(`✅ Pedido ${newOrder.orderNumber} enviado a cocina`);
+                showTicketModal(newOrder);
+            }
+
+            clearPosCart(false);
+        } catch (err) {
+            console.error('Error submitting order:', err);
+            showNotification('⚠️ Error al procesar pedido', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.innerHTML = origText;
+                submitBtn.disabled = false;
+                updateSubmitButtonText();
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             }
-        });
+        }
     }
+
+    if (elements.posSubmitOrderBtn) elements.posSubmitOrderBtn.addEventListener('click', submitOrder);
+    if (elements.sendToKitchenBtn) elements.sendToKitchenBtn.addEventListener('click', submitOrder);
+
+    // Initial render of POS workspace
+    renderPosCategories();
+    renderPosProducts();
+    renderPosCart();
 
     function showTicketModal(order) {
         if (!elements.ticketModal) return;
@@ -932,9 +939,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.orderTotal = 0;
         updateOrderTotal();
 
-        // Clear customer name
-        if (elements.orderCustomerName) elements.orderCustomerName.value = '';
-    }
+
 
     // ============================================
     // Checkout / Payment
@@ -1012,9 +1017,26 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span class="kitchen-time">${o.customerInfo}</span>
                         </div>
                         <div class="kitchen-items">
-                            ${o.items.map(item => `
-                                <div class="k-item">${item.qty}x ${item.categoryName} ${item.size} ${item.flavors.join('/')}</div>
-                            `).join('')}
+                            ${(() => {
+                                const kItemsByClient = {};
+                                o.items.forEach(item => {
+                                    const cName = item.clientName || 'CLIENTE';
+                                    if (!kItemsByClient[cName]) kItemsByClient[cName] = [];
+                                    kItemsByClient[cName].push(item);
+                                });
+                                return Object.entries(kItemsByClient).map(([cName, cItems]) => `
+                                    <div style="font-size: 0.85rem; font-weight: bold; color: var(--accent-gold); margin: 6px 0 2px 0;">
+                                        Cliente: ${cName}
+                                    </div>
+                                    ${cItems.map(item => `
+                                        <div class="k-item">
+                                            <strong>${item.qty}x</strong> ${item.name || item.categoryName} ${item.size ? item.size : ''}
+                                            ${item.notes ? `<div style="font-size:0.8rem; color:#f0c040; margin-left:14px;">* ${item.notes}</div>` : ''}
+                                            ${item.extras && item.extras.length > 0 ? `<div style="font-size:0.8rem; color:#4ecdc4; margin-left:14px;">+ ${(Array.isArray(item.extras) ? item.extras.map(e => typeof e === 'object' ? e.name : e).join(', ') : item.extras)}</div>` : ''}
+                                        </div>
+                                    `).join('')}
+                                `).join('');
+                            })()}
                         </div>
                         <button class="k-action-btn" onclick="window.advanceOrder('${o.id}')">${action}</button>
                     </div>
@@ -1065,9 +1087,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="preview-item">
                             <div class="item-main">
                                 <span class="preview-qty">${item.qty}</span>
-                                <span class="preview-name">${item.categoryName} ${item.size} ${item.extras.length > 0 ? '+ ' + item.extras.join(', ') : ''}</span>
+                                <span class="preview-name">${item.name || item.categoryName} ${item.notes ? '(' + item.notes + ')' : ''} ${item.extras && item.extras.length > 0 ? '+ ' + (Array.isArray(item.extras) ? item.extras.map(e => typeof e === 'object' ? e.name : e).join(', ') : item.extras) : ''}</span>
                             </div>
-                            <span class="item-price">${formatPrice(item.price / item.qty)}</span>
+                            <span class="item-price">${formatPrice(item.price || (item.unitPrice * item.qty))}</span>
                         </div>
                     `).join('')}
                 </div>
@@ -1077,7 +1099,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${!order.paid ? `
                             <button class="btn-append-items" onclick="event.stopPropagation(); window.appendToOrder('${order.id}')" 
                                 style="background: var(--accent-primary); color: white; border: none; padding: 4px 12px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                <i data-lucide="plus" style="width: 14px; height: 14px;"></i> AÃ‘ADIR
+                                <i data-lucide="plus" style="width: 14px; height: 14px;"></i> AÑADIR
                             </button>
                         ` : ''}
                     </div>
@@ -1127,11 +1149,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const appFooter = document.getElementById('appFooter');
         if (appFooter) appFooter.style.display = 'flex';
 
-        if (elements.orderCustomerName) {
-            elements.orderCustomerName.value = order.orderNumber.replace('#', '');
-        }
 
-        showNotification(`AÃ±adiendo productos a la Orden ${order.orderNumber}`);
+
+        showNotification(`Añadiendo productos a la Orden ${order.orderNumber}`);
         if (typeof lucide !== 'undefined') lucide.createIcons();
     };
 
@@ -1332,7 +1352,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const selectedRadio = document.querySelector('input[name="paymentMethod"]:checked');
 
                 if (!selectedRadio) {
-                    showNotification('âš ï¸ Selecciona un medio de pago', 'error');
+                    showNotification('⚠️ Selecciona un medio de pago', 'error');
                     return;
                 }
 
@@ -1347,7 +1367,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const total = efectivo + nequi + daviplata;
 
                     if (total < selectedPaymentOrder.totalPrice) {
-                        showNotification(`âš ï¸ Faltan $${formatPrice(selectedPaymentOrder.totalPrice - total).replace('$', '')} para completar el pago`, 'error');
+                        showNotification(`⚠️ Faltan $${formatPrice(selectedPaymentOrder.totalPrice - total).replace('$', '')} para completar el pago`, 'error');
                         return;
                     }
 
@@ -1407,7 +1427,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (totalEl && selectedPaymentOrder) {
             const diff = total - selectedPaymentOrder.totalPrice;
             if (diff >= 0) {
-                totalEl.innerHTML = `âœ“ Total: ${formatPrice(total)}`;
+                totalEl.innerHTML = `✓ Total: ${formatPrice(total)}`;
                 totalEl.style.color = '#059669';
             } else {
                 totalEl.innerHTML = `Faltan: ${formatPrice(Math.abs(diff))}`;
@@ -1434,7 +1454,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (selectedPaymentOrder.isPartial) {
                     // If it's a partial order (addition), delete it after printing
                     StorageManager.deleteOrder(selectedPaymentOrder.id);
-                    showNotification(`Ticket de adiciÃ³n impreso`);
+                    showNotification(`Ticket de adición impreso`);
                 } else {
                     // Normal order: Set as printed for checkout
                     StorageManager.updateOrder(selectedPaymentOrder.id, { checkoutPrinted: true });
@@ -1465,7 +1485,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!selectedPaymentOrder) return;
 
             const performDelete = async () => {
-                if (confirm(`Â¿EstÃ¡s seguro de que deseas eliminar permanentemente el pedido ${selectedPaymentOrder.orderNumber}?`)) {
+                if (confirm(`¿Estás seguro de que deseas eliminar permanentemente el pedido ${selectedPaymentOrder.orderNumber}?`)) {
                     await StorageManager.deleteOrder(selectedPaymentOrder.id);
                     showNotification(`Pedido ${selectedPaymentOrder.orderNumber} eliminado`);
                     elements.paymentModal.classList.add('hidden');
@@ -1602,7 +1622,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (catId === 'bebidas' || catName.includes('bebida')) {
                     totalBebidas += item.price;
                     orderDrinks += item.price;
-                    flavorStats.drinks[item.flavors[0] || 'GenÃ©rica'] = (flavorStats.drinks[item.flavors[0] || 'GenÃ©rica'] || 0) + item.qty;
+                    flavorStats.drinks[item.flavors[0] || 'Genérica'] = (flavorStats.drinks[item.flavors[0] || 'Genérica'] || 0) + item.qty;
                     categorized = true;
                 } else if (catId === 'desechables' || catName.includes('desechable')) {
                     totalDesechables += item.price;
@@ -2105,10 +2125,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 orders = orders.filter(o => {
                     return o.items.some(item => {
                         const catId = (item.category || '').toLowerCase();
-                        const cType = getCategoryType(catId);
-                        if (historyFilter === 'comida') return foodCategories.includes(catId) || (!cType.includes('bebida') && !cType.includes('desechable'));
-                        if (historyFilter === 'bebidas') return catId === 'bebidas' || cType === 'bebidas';
-                        if (historyFilter === 'desechables') return catId === 'desechables' || cType === 'desechables';
+                        if (historyFilter === 'comida') return foodCategories.includes(catId);
+                        if (historyFilter === 'bebidas') return catId === 'bebidas';
+                        if (historyFilter === 'desechables') return catId === 'desechables';
                         return false;
                     });
                 });
@@ -2230,7 +2249,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!selectedHistoryOrder) return;
 
             const performDelete = async () => {
-                if (confirm(`Â¿EstÃ¡s seguro de que deseas eliminar permanentemente el pedido ${selectedHistoryOrder.orderNumber}?`)) {
+                if (confirm(`¿Estás seguro de que deseas eliminar permanentemente el pedido ${selectedHistoryOrder.orderNumber}?`)) {
                     await StorageManager.deleteOrder(selectedHistoryOrder.id);
                     showNotification(`Pedido ${selectedHistoryOrder.orderNumber} eliminado`);
                     elements.historyOrderModal.classList.add('hidden');
@@ -2347,8 +2366,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function generateTicketText(order) {
         if (!order || !order.items) return 'Error: Pedido sin productos';
-        const TICKET_WIDTH = 24;
-        const labels = { salon: 'SALÃ“N', llevar: 'LLEVAR', domicilio: 'DOMICILIO' };
+        const TICKET_WIDTH = 26;
+        const labels = { salon: 'SALÓN', llevar: 'LLEVAR', domicilio: 'DOMICILIO' };
         const now = new Date(order.createdAt || Date.now());
         const dateStr = now.toLocaleDateString('es-CO');
         const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
@@ -2368,109 +2387,71 @@ document.addEventListener('DOMContentLoaded', () => {
             return left + ' '.repeat(spaceNeeded) + right;
         };
 
-        const twoColumns = (leftStr, rightStr) => {
-            const COL1_WIDTH = 15;
-            const COL2_WIDTH = 6;
-            let left = String(leftStr).toUpperCase();
-            let right = String(rightStr).toUpperCase();
-
-            if (left.length > COL1_WIDTH) left = left.substring(0, COL1_WIDTH);
-            if (right.length > COL2_WIDTH) right = right.substring(0, COL2_WIDTH);
-
-            return left.padEnd(COL1_WIDTH) + ' ' + right.padEnd(COL2_WIDTH) + '  ';
-        };
-
-        const L_TOP = "â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”";
-        const L_MID = "â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”¤";
-        const L_BOT = "â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”˜";
-
-        const tableHeader = (catName, qty) => {
-            const title = `${catName} (${qty})`.toUpperCase();
-            // Category title will be bold - use special marker that we'll convert to HTML
-            let h = `<b>${title}</b>\n`;
-            h += " PRODUCTO        ADICION\n";
-            return h;
-        };
-
-        const tableRow = (s1, s2, s3, adi) => {
-            const flavorsList = [s1, s2, s3].filter(f => f && f.trim() !== '');
-            const flavors = flavorsList.join('-');
-
-            // PRODUCTO column: up to 15 chars for clarity in kitchen, then pad for alignment
-            const fCol = flavors.substring(0, 15).toUpperCase().padEnd(15);
-            const adCol = (adi || '').substring(0, 7).toUpperCase().padEnd(7);
-
-            // Return plain text row aligned with the grid
-            return ` ${fCol} ${adCol}`;
-        };
-
-        const topDivider = 'â”'.repeat(TICKET_WIDTH);
-        const subDivider = 'â”€'.repeat(TICKET_WIDTH);
+        const topDivider = '━'.repeat(TICKET_WIDTH);
+        const subDivider = '─'.repeat(TICKET_WIDTH);
 
         let ticket = '';
         ticket += topDivider + '\n';
         if (order.isAppending) {
-            // Show service type prominently for additions (e.g. LLEVAR)
-            const sType = labels[order.serviceType] || 'SALÃ“N';
+            const sType = labels[order.serviceType] || 'SALÓN';
             ticket += center(`*** ${sType} ***`) + '\n';
-            ticket += center('(ADICION)') + '\n';
+            ticket += center('(ADICIÓN)') + '\n';
         } else {
-            ticket += center('FOODX POS PRO') + '\n';
+            ticket += center('COMANDA DE COCINA') + '\n';
+            ticket += center('POS PRO') + '\n';
         }
 
-        // Show Name/Code and Sequence Number
-        ticket += center(`ID: ${order.orderNumber || '1024'}`) + '\n';
-        if (order.sequenceNumber) {
-            ticket += center(`ORDEN: ${order.sequenceNumber}`) + '\n';
+        ticket += center(`ORDEN: ${order.orderNumber || '---'}`) + '\n';
+        if (order.sequenceNumber && order.sequenceNumber !== order.orderNumber) {
+            ticket += center(`TURNO: ${order.sequenceNumber}`) + '\n';
         }
 
         ticket += topDivider + '\n';
-
-        // Date and Time on same line, no labels
         ticket += justify(dateStr, timeStr) + '\n';
-        ticket += center(`TIPO: ${labels[order.serviceType]}`) + '\n';
-        ticket += center(subDivider) + '\n';
-
-        // Group items by category
-        const itemsByCategory = {};
+        ticket += center(`TIPO: ${labels[order.serviceType] || 'SALÓN'}`) + '\n';
+        if (order.customerInfo) {
+            ticket += center(`MESA/CLI: ${order.customerInfo}`) + '\n';
+        }
+        const itemsByClient = {};
         order.items.forEach(item => {
-            if (!itemsByCategory[item.category]) {
-                itemsByCategory[item.category] = {
-                    name: item.categoryName,
-                    items: []
-                };
-            }
-            itemsByCategory[item.category].items.push(item);
+            const cName = item.clientName || 'CLIENTE';
+            if (!itemsByClient[cName]) itemsByClient[cName] = [];
+            itemsByClient[cName].push(item);
         });
 
-        Object.keys(itemsByCategory).forEach(catId => {
-            const cat = itemsByCategory[catId];
-            const catTotalQty = cat.items.reduce((sum, item) => sum + item.qty, 0);
+        for (const [clientName, cItems] of Object.entries(itemsByClient)) {
+            ticket += subDivider + '\n';
+            ticket += center(`=== ${clientName.toUpperCase()} ===`) + '\n';
+            ticket += subDivider + '\n';
+            ticket += 'CANT PRODUCTO         VALOR\n';
+            ticket += subDivider + '\n';
 
-            // Table Header with category integrated - separated
-            ticket += '\n' + tableHeader(cat.name, catTotalQty) + '\n';
-
-            cat.items.forEach((item) => {
-                const s1 = item.flavors[0] || '';
-                const s2 = item.flavors[1] || '';
-                const s3 = item.flavors[2] || '';
-
-                // Join multiple extras with hyphen
-                const extrasLabel = (item.extras || []).join('-');
-
-                // Table row with Adicion column
-                ticket += tableRow(s1, s2, s3, extrasLabel) + '\n';
-
-                if (item.observations && item.observations.trim() !== '') {
-                    ticket += ' * OBS: ' + item.observations.toUpperCase() + '\n';
+            cItems.forEach(item => {
+                const qty = `${item.qty}x`.padEnd(5);
+                let name = (item.name || item.categoryName || 'ITEM').toUpperCase();
+                const price = formatPrice(item.price || (item.unitPrice * item.qty));
+                
+                if (name.length > 13) name = name.substring(0, 13);
+                name = name.padEnd(14);
+                
+                ticket += `${qty}${name}${price.padStart(7)}\n`;
+                if (item.notes && item.notes.trim() !== '') {
+                    ticket += `  * NOTA: ${item.notes.toUpperCase()}\n`;
+                }
+                if (item.observations && item.observations.trim() !== '' && item.observations !== item.notes) {
+                    ticket += `  * OBS: ${item.observations.toUpperCase()}\n`;
+                }
+                if (item.extras && item.extras.length > 0) {
+                    const ext = Array.isArray(item.extras) ? item.extras.map(e => typeof e === 'object' ? e.name : e).join(', ') : item.extras;
+                    ticket += `  + ADI: ${ext.toUpperCase()}\n`;
                 }
             });
-            // Removed L_BOT since header closes itself now
-        });
+        }
 
-        ticket += '\n' + justify('TOTAL:', formatPrice(order.totalPrice)) + '\n';
+        ticket += subDivider + '\n';
+        ticket += justify('TOTAL:', formatPrice(order.totalPrice)) + '\n';
         ticket += topDivider + '\n';
-        ticket += center('GRACIAS POR SU COMPRA') + '\n';
+        ticket += center('¡GRACIAS POR SU COMPRA!') + '\n';
         ticket += topDivider + '\n\n\n.';
 
         return ticket;
@@ -2478,8 +2459,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function generateInvoiceText(order) {
         if (!order || !order.items) return 'Error: Pedido sin productos';
-        const TICKET_WIDTH = 26; // Match standard paper width
-        const labels = { salon: 'SALÃ“N', llevar: 'LLEVAR', domicilio: 'DOMICILIO' };
+        const TICKET_WIDTH = 26;
+        const labels = { salon: 'SALÓN', llevar: 'LLEVAR', domicilio: 'DOMICILIO' };
         const now = new Date(order.createdAt || Date.now());
         const dateStr = now.toLocaleDateString('es-CO');
         const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
@@ -2499,41 +2480,50 @@ document.addEventListener('DOMContentLoaded', () => {
             return left + ' '.repeat(spaceNeeded) + right;
         };
 
-        const topDivider = 'â”'.repeat(TICKET_WIDTH);
-        const subDivider = 'â”€'.repeat(TICKET_WIDTH);
+        const topDivider = '━'.repeat(TICKET_WIDTH);
+        const subDivider = '─'.repeat(TICKET_WIDTH);
 
         let ticket = '';
         ticket += center('FACTURA DE VENTA') + '\n';
-        ticket += center('FOODX POS PRO') + '\n';
-        ticket += center(`ID: ${order.orderNumber || '1024'}`) + '\n';
-        if (order.sequenceNumber) {
-            ticket += center(`ORDEN: ${order.sequenceNumber}`) + '\n';
+        ticket += center('POS PRO') + '\n';
+        ticket += center(`ORDEN: ${order.orderNumber || '---'}`) + '\n';
+        if (order.sequenceNumber && order.sequenceNumber !== order.orderNumber) {
+            ticket += center(`TURNO: ${order.sequenceNumber}`) + '\n';
         }
         ticket += topDivider + '\n';
         ticket += justify(dateStr, timeStr) + '\n';
-        ticket += center(`TIPO: ${labels[order.serviceType]}`) + '\n';
-        ticket += topDivider + '\n';
-        ticket += 'CANT PRODUCTO         VALOR\n';
-        ticket += subDivider + '\n';
-
+        ticket += center(`TIPO: ${labels[order.serviceType] || 'SALÓN'}`) + '\n';
+        if (order.customerInfo) {
+            ticket += center(`MESA/CLI: ${order.customerInfo}`) + '\n';
+        }
+        const itemsByClient = {};
         order.items.forEach(item => {
-            const qty = item.qty;
-            // Name: First letter Upper, rest lower, capped at 5
-            const rawName = item.categoryName || '';
-            const name = rawName.charAt(0).toUpperCase() + rawName.slice(1, 5).toLowerCase();
-            
-            const size = item.size || '';
-            // Extras: First 2 letters of each, separated by +
-            const extrasStr = (item.extras || []).length > 0 
-                ? '+' + item.extras.map(e => e.substring(0, 2).toUpperCase()).join('+')
-                : '';
-            
-            const lineInfo = `${qty} ${name} ${size}${extrasStr}`;
-            const priceStr = formatPrice(item.price);
-            
-            ticket += justify(lineInfo, priceStr) + '\n';
-            
+            const cName = item.clientName || 'CLIENTE';
+            if (!itemsByClient[cName]) itemsByClient[cName] = [];
+            itemsByClient[cName].push(item);
         });
+
+        for (const [clientName, cItems] of Object.entries(itemsByClient)) {
+            ticket += subDivider + '\n';
+            ticket += center(`=== ${clientName.toUpperCase()} ===`) + '\n';
+            ticket += subDivider + '\n';
+            ticket += 'CANT PRODUCTO         VALOR\n';
+            ticket += subDivider + '\n';
+
+            cItems.forEach(item => {
+                const qty = `${item.qty}x`.padEnd(5);
+                let name = (item.name || item.categoryName || 'ITEM').toUpperCase();
+                const price = formatPrice(item.price || (item.unitPrice * item.qty));
+                
+                if (name.length > 13) name = name.substring(0, 13);
+                name = name.padEnd(14);
+                
+                ticket += `${qty}${name}${price.padStart(7)}\n`;
+                if (item.notes && item.notes.trim() !== '') {
+                    ticket += `  * ${item.notes.toUpperCase()}\n`;
+                }
+            });
+        }
 
         ticket += subDivider + '\n';
         ticket += justify('TOTAL:', formatPrice(order.totalPrice)) + '\n';
@@ -2633,7 +2623,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusEl.style.background = '#dcfce7';
                 statusEl.style.color = '#16a34a';
             } else if (netBalance < 0) {
-                statusEl.textContent = 'DÃ©ficit';
+                statusEl.textContent = 'Déficit';
                 statusEl.style.background = '#fee2e2';
                 statusEl.style.color = '#dc2626';
             } else {
@@ -2650,7 +2640,7 @@ document.addEventListener('DOMContentLoaded', () => {
             summaryEl.innerHTML = Object.entries(categoryTotals)
                 .sort((a, b) => b[1] - a[1])
                 .map(([catId, amount]) => {
-                    const cat = CATS[catId] || { label: catId, emoji: 'ðŸ“Œ' };
+                    const cat = CATS[catId] || { label: catId, emoji: '📌' };
                     const idx = allCatsForColors.findIndex(c => c.id === catId);
                     const color = expenseCatColors[idx % expenseCatColors.length] || '#6b7280';
                     return `
@@ -2679,8 +2669,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <thead>
                             <tr style="background: var(--bg-tertiary);">
                                 <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Fecha</th>
-                                <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">CategorÃ­a</th>
-                                <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">DescripciÃ³n</th>
+                                <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Categoría</th>
+                                <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Descripción</th>
                                 <th style="padding: 10px 12px; text-align: center; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Cant.</th>
                                 <th style="padding: 10px 12px; text-align: right; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Unit.</th>
                                 <th style="padding: 10px 12px; text-align: right; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Total</th>
@@ -2691,7 +2681,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
 
                 expenses.forEach(expense => {
-                    const cat = CATS[expense.category] || { label: 'Otros', emoji: 'ðŸ“Œ' };
+                    const cat = CATS[expense.category] || { label: 'Otros', emoji: '📌' };
                     const dateObj = new Date(expense.date || expense.createdAt);
                     const dateStr = dateObj.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: '2-digit' });
                     const qty = expense.qty || 1;
@@ -2755,7 +2745,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
                 <thead>
                     <tr style="background: var(--bg-tertiary);">
-                        <th style="padding: 8px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase;">Nombre de CategorÃ­a</th>
+                        <th style="padding: 8px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase;">Nombre de Categoría</th>
                         <th style="padding: 8px 6px; width: 60px; text-align: center; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase;">Acciones</th>
                     </tr>
                 </thead>
@@ -2769,11 +2759,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td style="padding: 8px 6px; text-align: center; white-space: nowrap;">
                         <button onclick="window.editExpenseCategory('${cat.id}')"
                             style="background: none; border: none; color: var(--accent-primary); cursor: pointer; padding: 4px; font-size: 1rem;" title="Editar">
-                            âœï¸
+                            ✏️
                         </button>
                         <button onclick="window.deleteExpenseCategory('${cat.id}')"
                             style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; margin-left: 2px; font-size: 1rem;" title="Eliminar">
-                            ðŸ—‘ï¸
+                            🗑️
                         </button>
                     </td>
                 </tr>
@@ -2785,7 +2775,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add new category form
         html += `
             <div style="display: flex; gap: var(--space-xs); align-items: center;">
-                <input type="text" id="newExpenseCatLabel" placeholder="Nombre de categorÃ­a"
+                <input type="text" id="newExpenseCatLabel" placeholder="Nombre de categoría"
                     style="flex: 1; padding: 8px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary); font-size: 0.85rem; box-sizing: border-box;">
                 <button onclick="window.addExpenseCategory()"
                     style="padding: 8px 14px; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: var(--radius-md); font-weight: 700; font-size: 0.8rem; cursor: pointer; white-space: nowrap;">
@@ -2802,7 +2792,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const label = document.getElementById('newExpenseCatLabel')?.value.trim();
 
         if (!label) {
-            showNotification('âš ï¸ Ingresa un nombre para la categorÃ­a', 'error');
+            showNotification('⚠️ Ingresa un nombre para la categoría', 'error');
             return;
         }
 
@@ -2810,13 +2800,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const id = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 
         if (cats.find(c => c.id === id)) {
-            showNotification('âš ï¸ Ya existe una categorÃ­a con ese nombre', 'error');
+            showNotification('⚠️ Ya existe una categoría con ese nombre', 'error');
             return;
         }
 
-        cats.push({ id, label, emoji: 'ðŸ“Œ' });
+        cats.push({ id, label, emoji: '📌' });
         StorageManager.saveExpenseCategories(cats);
-        showNotification(`CategorÃ­a "${label}" creada`);
+        showNotification(`Categoría "${label}" creada`);
         renderExpensesPage();
     };
 
@@ -2825,21 +2815,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const cat = cats.find(c => c.id === catId);
         if (!cat) return;
 
-        const newLabel = prompt('Nombre de la categorÃ­a:', cat.label);
+        const newLabel = prompt('Nombre de la categoría:', cat.label);
         if (newLabel === null) return;
 
         cat.label = newLabel.trim() || cat.label;
         StorageManager.saveExpenseCategories(cats);
-        showNotification(`CategorÃ­a actualizada: ${cat.label}`);
+        showNotification(`Categoría actualizada: ${cat.label}`);
         renderExpensesPage();
     };
 
     window.deleteExpenseCategory = function (catId) {
         const performDelete = () => {
-            if (!confirm('Â¿Eliminar esta categorÃ­a de egreso?')) return;
+            if (!confirm('¿Eliminar esta categoría de egreso?')) return;
             const cats = StorageManager.getExpenseCategories().filter(c => c.id !== catId);
             StorageManager.saveExpenseCategories(cats);
-            showNotification('CategorÃ­a eliminada');
+            showNotification('Categoría eliminada');
             renderExpensesPage();
         };
 
@@ -2864,17 +2854,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const date = document.getElementById('expenseDate').value;
 
             if (!amount || amount <= 0) {
-                showNotification('âš ï¸ Ingresa un monto vÃ¡lido', 'error');
+                showNotification('⚠️ Ingresa un monto válido', 'error');
                 return;
             }
 
             if (!date) {
-                showNotification('âš ï¸ Selecciona una fecha', 'error');
+                showNotification('⚠️ Selecciona una fecha', 'error');
                 return;
             }
 
             const CATS = getExpenseCatMap();
-            const cat = CATS[category] || { label: 'Otros', emoji: 'ðŸ“Œ' };
+            const cat = CATS[category] || { label: 'Otros', emoji: '📌' };
 
             StorageManager.addExpense({
                 category: category,
@@ -2940,7 +2930,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Delete expense (global handler)
     window.deleteExpense = function (expenseId) {
         const performDelete = async () => {
-            if (confirm('Â¿Eliminar este egreso?')) {
+            if (confirm('¿Eliminar este egreso?')) {
                 await StorageManager.deleteExpense(expenseId);
                 showNotification('Egreso eliminado');
                 renderExpensesPage();
@@ -2988,7 +2978,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (expenses.length === 0) {
-            showNotification('âš ï¸ No hay egresos para descargar', 'error');
+            showNotification('⚠️ No hay egresos para descargar', 'error');
             return;
         }
 
@@ -3002,12 +2992,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const CATS = getExpenseCatMap();
 
-        // Build data rows matching the table: Fecha | CategorÃ­a | DescripciÃ³n | Cant. | V. Unit. | Total
-        const rows = [['Fecha', 'CategorÃ­a', 'DescripciÃ³n', 'Cant.', 'V. Unit.', 'Total']];
+        // Build data rows matching the table: Fecha | Categoría | Descripción | Cant. | V. Unit. | Total
+        const rows = [['Fecha', 'Categoría', 'Descripción', 'Cant.', 'V. Unit.', 'Total']];
 
         let total = 0;
         expenses.forEach(expense => {
-            const cat = CATS[expense.category] || { label: 'Otros', emoji: 'ðŸ“Œ' };
+            const cat = CATS[expense.category] || { label: 'Otros', emoji: '📌' };
             const dateObj = new Date(expense.date || expense.createdAt);
             const dateStr = dateObj.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
             const qty = expense.qty || 1;
@@ -3034,8 +3024,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set column widths
         ws['!cols'] = [
             { wch: 12 },  // Fecha
-            { wch: 20 },  // CategorÃ­a
-            { wch: 30 },  // DescripciÃ³n
+            { wch: 20 },  // Categoría
+            { wch: 30 },  // Descripción
             { wch: 8 },   // Cant.
             { wch: 12 },  // V. Unit.
             { wch: 12 }   // Total
@@ -3050,7 +3040,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         XLSX.writeFile(wb, `Egresos_${periodLabel}_${dateFile}.xlsx`);
 
-        showNotification('ðŸ“¥ Excel descargado');
+        showNotification('📥 Excel descargado');
     };
 
     // ============================================
@@ -3099,7 +3089,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!elements.adminCategoriesList) return;
         elements.adminCategoriesList.innerHTML = categories.map(cat => `
             <div class="admin-item">
-                <div class="admin-item-info"><span>${cat.icon} ${cat.name}</span></div>
+                <div class="admin-item-info"><span>${cat.name}</span></div>
                 <div class="admin-item-actions">
                     <button class="btn-icon" onclick="window.editAdminItem('category', '${cat.id}')">
                         <i data-lucide="edit-2"></i>
@@ -3121,13 +3111,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (elements.adminCategorySelectFlavors) {
         elements.adminCategorySelectFlavors.addEventListener('change', () => {
-            const catId = elements.adminCategorySelectFlavors.value;
-            const isBebida = getCategoryType(catId) === 'bebidas';
-            if (elements.addFlavorBtn) {
-                elements.addFlavorBtn.innerHTML = `<i data-lucide="plus"></i> ${isBebida ? 'Agregar Bebida' : 'Agregar Sabor'}`;
-                if (typeof lucide !== 'undefined') lucide.createIcons();
-            }
-            renderFlavorsList(StorageManager.getConfig().flavors, catId);
+            renderFlavorsList(StorageManager.getConfig().flavors, elements.adminCategorySelectFlavors.value);
         });
     }
 
@@ -3145,17 +3129,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderFlavorsList(all, catId) {
         if (!elements.adminFlavorsList) return;
-        const list = all[catId] || [];
-        const isBebida = getCategoryType(catId) === 'bebidas';
-        if (elements.addFlavorBtn) {
-            elements.addFlavorBtn.innerHTML = `<i data-lucide="plus"></i> ${isBebida ? 'Agregar Bebida' : 'Agregar Sabor'}`;
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
+        const config = StorageManager.getConfig();
+        const list = (config.products && config.products.length > 0)
+            ? config.products.filter(p => p.category === catId)
+            : (all[catId] || []);
+
         elements.adminFlavorsList.innerHTML = list.map(f => `
             <div class="admin-item">
                 <div class="admin-item-info">
                     <span>${f.name}</span>
-                    ${isBebida ? `<span>${formatPrice(f.price || 0)}</span>` : ''}
+                    <span style="font-weight: 700; color: var(--accent-gold);">${formatPrice(f.price || 0)}</span>
                 </div>
                 <div class="admin-item-actions">
                     <button class="btn-icon" onclick="window.editAdminItem('flavor', '${f.id}', '${catId}')">
@@ -3212,77 +3195,56 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.editAdminItem = function (type, id, parentId = null) {
-        console.log('Editing:', type, id, parentId);
         adminEditContext = { type, id, parentId };
         const config = StorageManager.getConfig();
-        elements.adminModalTitle.textContent = `Editar ${type}`;
+        const displayType = type === 'flavor' ? 'Producto' : (type === 'category' ? 'Categoría' : (type === 'extra' ? 'Adicional' : 'Observación'));
+        elements.adminModalTitle.textContent = `Editar ${displayType}`;
         let html = '';
         if (type === 'category') {
             const item = config.categories.find(c => c.id === id);
-            const catType = getCategoryType(item || id);
-            const isCombos = catType === 'combos';
-            const isBebidas = catType === 'bebidas';
-            const L1 = isCombos ? 'HB' : 'XS';
-            const L2 = isCombos ? 'PE' : 'XM';
-            const L3 = isCombos ? 'SA' : 'XL';
-
-            const hasSizeX = catType === 'hamburguesas' || catType === 'perros' || catType === 'salchipapas';
-
-            if (!config.prices[id]) config.prices[id] = {};
-
-            if (isBebidas) {
-                html = `<div class="form-group"><label>Nombre</label><input type="text" id="editName" value="${item.name}"></div>
-                        <div class="form-group"><label>Icono</label><input type="text" id="editIcon" value="${item.icon}"></div>
-                        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px; margin-top: 10px; font-size: 0.85rem; color: #93c5fd;">
-                            â„¹ï¸ <strong>Producto Ãºnico:</strong> Las bebidas no manejan tamaÃ±os (XS, XM, XL, X). El precio de cada bebida o producto se configura directamente en la pestaÃ±a <strong>"Sabores"</strong>.
-                        </div>`;
-            } else {
-                html = `<div class="form-group"><label>Nombre</label><input type="text" id="editName" value="${item.name}"></div>
-                        <div class="form-group"><label>Icono</label><input type="text" id="editIcon" value="${item.icon}"></div>
-                        <div class="form-row">
-                            <div class="form-group"><label>${L1}</label><input type="number" id="priceXS" value="${config.prices[id][L1] || 0}"></div>
-                            <div class="form-group"><label>${L2}</label><input type="number" id="priceXM" value="${config.prices[id][L2] || 0}"></div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group"><label>${L3}</label><input type="number" id="priceXL" value="${config.prices[id][L3] || 0}"></div>
-                            ${hasSizeX ? `<div class="form-group"><label>X</label><input type="number" id="priceX" value="${(config.prices[id] && config.prices[id]['X']) || 0}"></div>` : ''}
-                        </div>`;
-            }
+            html = `<div class="form-group"><label>Nombre de Categoría</label><input type="text" id="editName" value="${item.name}"></div>`;
         } else if (type === 'flavor') {
-            const item = (config.flavors[parentId] || []).find(f => f.id === id);
-            const isBebida = getCategoryType(parentId) === 'bebidas';
-            elements.adminModalTitle.textContent = isBebida ? 'Editar Bebida / Producto' : 'Editar Sabor';
-            html = `<div class="form-group"><label>Nombre</label><input type="text" id="editName" value="${item ? item.name : ''}"></div>
-                    ${isBebida ? `<div class="form-group"><label>Precio</label><input type="number" id="editPrice" value="${(item && item.price) || 0}"></div>` : ''}`;
+            const allProds = getActiveProductsList(config);
+            const item = allProds.find(p => p.id === id) || (config.flavors[parentId] && config.flavors[parentId].find(f => f.id === id)) || { name: '', price: 0 };
+            html = `<div class="form-group"><label>Nombre del Producto</label><input type="text" id="editName" value="${item.name}"></div>
+                    <div class="form-group"><label>Precio Unitario ($)</label><input type="number" id="editPrice" value="${item.price || 0}"></div>`;
         } else if (type === 'extra') {
             const item = config.extras[parentId].find(e => e.id === id);
             html = `<div class="form-group"><label>Nombre</label><input type="text" id="editName" value="${item.name}"></div>
-                    <div class="form-group"><label>Precio</label><input type="number" id="editPrice" value="${item.price}"></div>`;
+                    <div class="form-group"><label>Precio ($)</label><input type="number" id="editPrice" value="${item.price}"></div>`;
         } else if (type === 'observation') {
             const item = config.observations[parentId].find(o => o.id === id);
-            html = `<div class="form-group"><label>DescripciÃ³n</label><input type="text" id="editName" value="${item.name}"></div>
-                    <div class="form-group"><label>Precio</label><input type="number" id="editPrice" value="${item.price || 0}"></div>`;
+            html = `<div class="form-group"><label>Descripción / Nota</label><input type="text" id="editName" value="${item.name}"></div>
+                    <div class="form-group"><label>Precio Extra si aplica ($)</label><input type="number" id="editPrice" value="${item.price || 0}"></div>`;
         }
         elements.adminModalBody.innerHTML = html;
         elements.adminModal.classList.add('open');
     };
 
     window.deleteAdminItem = function (type, id, pId) {
-        console.log('Deleting:', type, id, pId);
-        if (!confirm('Â¿Seguro que desea eliminar?')) return;
+        if (!confirm('¿Seguro que deseas eliminar este elemento?')) return;
         const config = StorageManager.getConfig();
         if (type === 'category') {
             config.categories = config.categories.filter(c => c.id !== id);
-            delete config.prices[id];
-            delete config.flavors[id];
+            if (config.products) config.products = config.products.filter(p => p.category !== id);
+            if (config.flavors) delete config.flavors[id];
             if (config.extras) delete config.extras[id];
             if (config.observations) delete config.observations[id];
-        } else if (type === 'flavor') config.flavors[pId] = config.flavors[pId].filter(f => f.id !== id);
-        else if (type === 'extra') config.extras[pId] = config.extras[pId].filter(e => e.id !== id);
-        else if (type === 'observation') config.observations[pId] = config.observations[pId].filter(o => o.id !== id);
+        } else if (type === 'flavor') {
+            if (config.products) config.products = config.products.filter(p => p.id !== id);
+            if (config.flavors && config.flavors[pId]) {
+                config.flavors[pId] = config.flavors[pId].filter(f => f.id !== id);
+            }
+        } else if (type === 'extra') {
+            if (config.extras && config.extras[pId]) config.extras[pId] = config.extras[pId].filter(e => e.id !== id);
+        } else if (type === 'observation') {
+            if (config.observations && config.observations[pId]) config.observations[pId] = config.observations[pId].filter(o => o.id !== id);
+        }
 
         StorageManager.saveConfig(config);
         renderAdminPage();
+        renderPosCategories();
+        renderPosProducts();
         showNotification('Eliminado correctamente');
     };
 
@@ -3291,66 +3253,88 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.confirmAdminModal.onclick = () => {
             const config = StorageManager.getConfig();
             const { type, id, parentId } = adminEditContext;
-            const name = document.getElementById('editName').value;
+            const name = document.getElementById('editName').value.trim();
+            if (!name) {
+                showNotification('Ingresa un nombre válido', 'error');
+                return;
+            }
+
             if (type === 'category') {
-                const cat = id ? config.categories.find(c => c.id === id) : { id: 'cat_' + Date.now() };
-                cat.name = name;
-                cat.icon = document.getElementById('editIcon').value;
-                if (!id) {
-                    config.categories.push(cat);
-                    config.flavors[cat.id] = [];
-                    if (!config.extras) config.extras = {};
-                    if (!config.observations) config.observations = {};
-                    config.extras[cat.id] = [];
-                    config.observations[cat.id] = [];
-                }
-
-                const catType = getCategoryType({ id: cat.id, name: name });
-                const isCombos = catType === 'combos';
-                const isBebidas = catType === 'bebidas';
-                const hasSizeX = catType === 'hamburguesas' || catType === 'perros' || catType === 'salchipapas';
-
-                if (isBebidas) {
-                    config.prices[cat.id] = { XS: 0, XM: 0, XL: 0 };
-                } else {
-                    const p1 = +document.getElementById('priceXS')?.value || 0;
-                    const p2 = +document.getElementById('priceXM')?.value || 0;
-                    const p3 = +document.getElementById('priceXL')?.value || 0;
-                    const p4 = hasSizeX && document.getElementById('priceX') ? +document.getElementById('priceX').value : 0;
-
-                    if (isCombos) {
-                        config.prices[cat.id] = { HB: p1, PE: p2, SA: p3 };
-                    } else if (hasSizeX) {
-                        config.prices[cat.id] = { XS: p1, XM: p2, XL: p3, X: p4 };
-                    } else {
-                        config.prices[cat.id] = { XS: p1, XM: p2, XL: p3 };
+                if (id) {
+                    const cat = config.categories.find(c => c.id === id);
+                    if (cat) {
+                        cat.name = name;
                     }
+                } else {
+                    const newId = 'cat_' + Date.now();
+                    config.categories.push({ id: newId, name, active: true });
+                    if (!config.flavors) config.flavors = {};
+                    config.flavors[newId] = [];
+                    if (!config.extras) config.extras = {};
+                    config.extras[newId] = [];
+                    if (!config.observations) config.observations = {};
+                    config.observations[newId] = [];
                 }
             } else if (type === 'flavor') {
-                if (!config.flavors[parentId]) config.flavors[parentId] = [];
-                const f = id ? config.flavors[parentId].find(x => x.id === id) : { id: 'f_' + Date.now() };
-                f.name = name;
-                if (getCategoryType(parentId) === 'bebidas') {
-                    f.price = +document.getElementById('editPrice').value || 0;
+                const price = +document.getElementById('editPrice').value || 0;
+
+                if (!config.products) config.products = [];
+
+                if (id) {
+                    const prod = config.products.find(p => p.id === id);
+                    if (prod) {
+                        prod.name = name;
+                        prod.price = price;
+                    }
+                    if (config.flavors && config.flavors[parentId]) {
+                        const fl = config.flavors[parentId].find(f => f.id === id);
+                        if (fl) {
+                            fl.name = name;
+                            fl.price = price;
+                        }
+                    }
+                } else {
+                    const newId = 'prod_' + Date.now();
+                    const newProd = { id: newId, name, price, category: parentId, active: true };
+                    config.products.push(newProd);
+
+                    if (!config.flavors) config.flavors = {};
+                    if (!config.flavors[parentId]) config.flavors[parentId] = [];
+                    config.flavors[parentId].push({ id: newId, name, price, active: true });
                 }
-                if (!id) config.flavors[parentId].push(f);
             } else if (type === 'extra') {
                 if (!config.extras) config.extras = {};
                 if (!config.extras[parentId]) config.extras[parentId] = [];
-                const e = id ? config.extras[parentId].find(x => x.id === id) : { id: 'e_' + Date.now() };
-                e.name = name;
-                e.price = +document.getElementById('editPrice').value;
-                if (!id) config.extras[parentId].push(e);
+                const price = +document.getElementById('editPrice').value || 0;
+                if (id) {
+                    const e = config.extras[parentId].find(x => x.id === id);
+                    if (e) {
+                        e.name = name;
+                        e.price = price;
+                    }
+                } else {
+                    config.extras[parentId].push({ id: 'e_' + Date.now(), name, price, active: true });
+                }
             } else if (type === 'observation') {
+                if (!config.observations) config.observations = {};
                 if (!config.observations[parentId]) config.observations[parentId] = [];
-                const o = id ? config.observations[parentId].find(x => x.id === id) : { id: 'o_' + Date.now() };
-                o.name = name;
-                o.price = +document.getElementById('editPrice').value;
-                if (!id) config.observations[parentId].push(o);
+                const price = +document.getElementById('editPrice').value || 0;
+                if (id) {
+                    const o = config.observations[parentId].find(x => x.id === id);
+                    if (o) {
+                        o.name = name;
+                        o.price = price;
+                    }
+                } else {
+                    config.observations[parentId].push({ id: 'o_' + Date.now(), name, price, active: true });
+                }
             }
+
             StorageManager.saveConfig(config);
             elements.adminModal.classList.remove('open');
             renderAdminPage();
+            renderPosCategories();
+            renderPosProducts();
             showNotification('Guardado correctamente');
         };
     }
@@ -3358,28 +3342,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elements.addCategoryBtn) {
         elements.addCategoryBtn.onclick = () => {
             adminEditContext = { type: 'category', id: null };
-            elements.adminModalTitle.textContent = 'Nueva CategorÃ­a';
+            elements.adminModalTitle.textContent = 'Nueva Categoría';
             elements.adminModalBody.innerHTML = `
-                <div class="form-group"><label>Nombre</label><input type="text" id="editName"></div>
-                <div class="form-group"><label>Icono</label><input type="text" id="editIcon"></div>
-                <div class="form-row">
-                    <div class="form-group"><label>XS / HB</label><input type="number" id="priceXS" value="0"></div>
-                    <div class="form-group"><label>XM / PE</label><input type="number" id="priceXM" value="0"></div>
-                </div>
-                <div class="form-group"><label>XL / SA</label><input type="number" id="priceXL" value="0"></div>`;
+                <div class="form-group"><label>Nombre de Categoría</label><input type="text" id="editName" placeholder="Ej: Panes Especiales"></div>
+            `;
             elements.adminModal.classList.add('open');
         };
     }
 
     if (elements.addFlavorBtn) {
         elements.addFlavorBtn.onclick = () => {
-            const catId = elements.adminCategorySelectFlavors.value;
-            const isBebida = getCategoryType(catId) === 'bebidas';
+            const catId = elements.adminCategorySelectFlavors ? elements.adminCategorySelectFlavors.value : 'panaderia';
             adminEditContext = { type: 'flavor', id: null, parentId: catId };
-            elements.adminModalTitle.textContent = isBebida ? 'Nueva Bebida / Producto' : 'Nuevo Sabor';
+            elements.adminModalTitle.textContent = 'Nuevo Producto';
             elements.adminModalBody.innerHTML = `
-                <div class="form-group"><label>Nombre</label><input type="text" id="editName"></div>
-                ${isBebida ? `<div class="form-group"><label>Precio</label><input type="number" id="editPrice" value="0"></div>` : ''}
+                <div class="form-group"><label>Nombre del Producto</label><input type="text" id="editName" placeholder="Ej: Croissant de Almendras"></div>
+                <div class="form-group"><label>Precio Unitario ($)</label><input type="number" id="editPrice" placeholder="4500" value="0"></div>
             `;
             elements.adminModal.classList.add('open');
         };
@@ -3400,7 +3378,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.addObsBtn.onclick = () => {
             const catId = elements.adminCategorySelectObs.value;
             adminEditContext = { type: 'observation', id: null, parentId: catId };
-            elements.adminModalTitle.textContent = 'Nueva ObservaciÃ³n';
+            elements.adminModalTitle.textContent = 'Nueva Observación';
             elements.adminModalBody.innerHTML = `
                 <div class="form-group"><label>Nombre</label><input type="text" id="editName"></div>
                 <div class="form-group"><label>Precio</label><input type="number" id="editPrice" value="0"></div>
@@ -3436,7 +3414,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.pendingAdminPage = null;
                 }
             } else {
-                showNotification('ContraseÃ±a incorrecta', 'error');
+                showNotification('Contraseña incorrecta', 'error');
                 elements.adminPasswordInput.value = '';
                 elements.adminPasswordInput.focus();
             }
@@ -3462,12 +3440,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const confirmPass = elements.confirmAdminPassword.value;
 
             if (newPass.length < 4) {
-                showNotification('La contraseÃ±a debe tener al menos 4 caracteres', 'error');
+                showNotification('La contraseña debe tener al menos 4 caracteres', 'error');
                 return;
             }
 
             if (newPass !== confirmPass) {
-                showNotification('Las contraseÃ±as no coinciden', 'error');
+                showNotification('Las contraseñas no coinciden', 'error');
                 return;
             }
 
@@ -3475,7 +3453,7 @@ document.addEventListener('DOMContentLoaded', () => {
             config.adminPassword = newPass;
             StorageManager.saveConfig(config);
 
-            showNotification('ContraseÃ±a actualizada correctamente');
+            showNotification('Contraseña actualizada correctamente');
             elements.newAdminPassword.value = '';
             elements.confirmAdminPassword.value = '';
         });
@@ -3489,6 +3467,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load and display current counter
     async function loadCurrentOrderCounter() {
+        const currentOrderCounterEl = document.getElementById('currentOrderCounter');
         if (!currentOrderCounterEl) return;
 
         const localCounter = localStorage.getItem('foodx_order_counter') || '0';
@@ -3512,7 +3491,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (resetOrderCounterBtn) {
         resetOrderCounterBtn.addEventListener('click', async () => {
-            if (confirm('Â¿EstÃ¡s seguro que deseas reiniciar el contador de pedidos a #001?')) {
+            if (confirm('¿Estás seguro que deseas reiniciar el contador de pedidos a #001?')) {
                 await resetOrderCounter();
             }
         });
@@ -3621,4 +3600,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize
     updateOrderTotal();
 });
-
