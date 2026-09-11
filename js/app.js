@@ -541,10 +541,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sFood) sFood.addEventListener('input', renderSplitUI);
     // Expose Cart methods
     // Expose Cart methods to window for inline onclick handlers
-    window.addToCart = addToCart;
-    window.updateCartItemQty = updateCartItemQty;
-    window.removeCartItem = removeCartItem;
-    window.clearPosCart = clearPosCart;
+        function clearPosCart(confirmClear = false) {
+        if (confirmClear && !confirm('¿Estás seguro de vaciar todo el pedido actual?')) return;
+        state.cart = [];
+        state.orderTotal = 0;
+        renderSplitUI();
+    }
+    // Remove the invalid window assignments that throw ReferenceError
 
     // Item Note Modal Logic
     window.openItemNoteModal = function (cartItemId) {
@@ -3494,6 +3497,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
   }
 });
+
 
 
 
