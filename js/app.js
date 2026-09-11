@@ -410,69 +410,72 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderSplitUI() {
-        const container = document.getElementById('dynamicCategoriesContainer');
-        if (!container) return;
+    const container = document.getElementById('dynamicCategoriesContainer');
+    if (!container) return;
 
-        const config = StorageManager.getConfig();
-        const products = getActiveProductsList(config);
-        
-        const searchInput = document.getElementById('searchAll');
-        const searchVal = searchInput ? (searchInput.value || '').toLowerCase() : '';
-        
-        const filtered = products.filter(p => p.name.toLowerCase().includes(searchVal));
-        
-        const groups = {};
-        filtered.forEach(p => {
-            const catId = p.category || 'otros';
-            if(!groups[catId]) groups[catId] = [];
-            groups[catId].push(p);
-        });
-        
-        let html = '';
-        
-        config.categories.forEach(cat => {
-            if (groups[cat.id] && groups[cat.id].length > 0) {
-                html += '<div class="category-block" style="margin-bottom: 5px;">' +
-                    '<h3 style="background: var(--bg-secondary); padding: 10px 12px; border-radius: 6px; color: var(--accent-primary); font-size: 1rem; margin: 0 0 10px 0; border-left: 4px solid var(--accent-primary); text-transform: uppercase;">' +
-                    cat.name + '</h3>' +
-                    '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">';
-                
-                html += groups[cat.id].map(p => {
-                    const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
-                    return '<div class="split-card ' + (isActive ? 'active drink-active' : '') + '" data-id="' + p.id + '" onclick="window.triggerToggleProduct(''' + p.id + ''')">' +
-                           '<span>' + p.name + '</span>' +
-                           '<div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px"></i></div>' +
-                           '</div>';
-                }).join('');
-                html += '</div></div>';
-                delete groups[cat.id];
-            }
-        });
-        
-        Object.keys(groups).forEach(catId => {
-            if(groups[catId].length > 0) {
-                html += '<div class="category-block" style="margin-bottom: 5px;">' +
-                    '<h3 style="background: var(--bg-secondary); padding: 10px 12px; border-radius: 6px; color: var(--accent-primary); font-size: 1rem; margin: 0 0 10px 0; border-left: 4px solid var(--accent-primary); text-transform: uppercase;">' +
-                    'Otros</h3>' +
-                    '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">';
-                
-                html += groups[catId].map(p => {
-                    const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
-                    return '<div class="split-card ' + (isActive ? 'active drink-active' : '') + '" data-id="' + p.id + '" onclick="window.triggerToggleProduct(''' + p.id + ''')">' +
-                           '<span>' + p.name + '</span>' +
-                           '<div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px"></i></div>' +
-                           '</div>';
-                }).join('');
-                html += '</div></div>';
-            }
-        });
-        
-        container.innerHTML = html;
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-        renderPosCart();
-    }
+    const config = StorageManager.getConfig();
+    const products = getActiveProductsList(config);
+    
+    const searchInput = document.getElementById('searchAll');
+    const searchVal = searchInput ? (searchInput.value || '').toLowerCase() : '';
+    
+    const filtered = products.filter(p => p.name.toLowerCase().includes(searchVal));
+    
+    const groups = {};
+    filtered.forEach(p => {
+        const catId = p.category || 'otros';
+        if(!groups[catId]) groups[catId] = [];
+        groups[catId].push(p);
+    });
+    
+    let html = '';
+    
+    config.categories.forEach(cat => {
+        if (groups[cat.id] && groups[cat.id].length > 0) {
+            html += `<div class="category-block" style="margin-bottom: 5px;">
+                <h3 style="background: var(--bg-secondary); padding: 10px 12px; border-radius: 6px; color: var(--accent-primary); font-size: 1rem; margin: 0 0 10px 0; border-left: 4px solid var(--accent-primary); text-transform: uppercase;">
+                    ${cat.name}
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">`;
+            
+            html += groups[cat.id].map(p => {
+                const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
+                return `<div class="split-card ${isActive ? 'active drink-active' : ''}" data-id="${p.id}" onclick="window.triggerToggleProduct('${p.id}')">
+                       <span>${p.name}</span>
+                       <div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px"></i></div>
+                       </div>`;
+            }).join('');
+            html += '</div></div>';
+            delete groups[cat.id];
+        }
+    });
+    
+    Object.keys(groups).forEach(catId => {
+        if(groups[catId].length > 0) {
+            html += `<div class="category-block" style="margin-bottom: 5px;">
+                <h3 style="background: var(--bg-secondary); padding: 10px 12px; border-radius: 6px; color: var(--accent-primary); font-size: 1rem; margin: 0 0 10px 0; border-left: 4px solid var(--accent-primary); text-transform: uppercase;">
+                    Otros
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">`;
+            
+            html += groups[catId].map(p => {
+                const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
+                return `<div class="split-card ${isActive ? 'active drink-active' : ''}" data-id="${p.id}" onclick="window.triggerToggleProduct('${p.id}')">
+                       <span>${p.name}</span>
+                       <div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px"></i></div>
+                       </div>`;
+            }).join('');
+            html += '</div></div>';
+        }
+    });
+    
+    container.innerHTML = html;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    renderPosCart();
+}
 
-        // Attach Search listeners
+
+    // Attach Search listeners
     const searchAll = document.getElementById('searchAll');
     if (searchAll) {
         searchAll.addEventListener('input', () => {
@@ -3444,6 +3447,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
+
+
 
 
 
