@@ -434,9 +434,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const cardEls = document.querySelectorAll(`.split-card[data-id="${product.id}"]`);
         cardEls.forEach(el => {
             if (isActiveNow) {
-                el.classList.add('active', 'drink-active');
+                el.classList.add('active');
             } else {
-                el.classList.remove('active', 'drink-active');
+                el.classList.remove('active');
             }
         });
         
@@ -475,25 +475,38 @@ function renderSplitUI() {
     
     let html = '';
     
+    const palette = [
+        { bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe', check: '#3b82f6' },
+        { bg: '#fff7ed', text: '#9a3412', border: '#fed7aa', check: '#f59e0b' },
+        { bg: '#f0fdf4', text: '#166534', border: '#bbf7d0', check: '#22c55e' },
+        { bg: '#fdf4ff', text: '#86198f', border: '#fbcfe8', check: '#d946ef' },
+        { bg: '#f8fafc', text: '#334155', border: '#e2e8f0', check: '#64748b' }
+    ];
+    let colorIndex = 0;
+    
     const renderColumn = (catId, catName) => {
         const items = groups[catId];
         if (!items || items.length === 0) return '';
         
-        let colHtml = `<div class="category-col" style="flex: 0 0 320px; display: flex; flex-direction: column; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-subtle); overflow: hidden; height: 100%;">
-            <div class="category-col-header" style="padding: 12px; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 10px;">
-                <h3 style="margin: 0; font-size: 1rem; color: var(--accent-primary); text-transform: uppercase;">${catName}</h3>
-                <div class="category-search-box" style="display: flex; align-items: center; background: white; border: 1px solid var(--border-subtle); border-radius: 6px; padding: 4px 8px;">
-                    <i data-lucide="search" style="width: 16px; height: 16px; color: var(--text-muted);"></i>
-                    <input type="text" placeholder="Buscar..." oninput="window.filterCategory(this, '${catId}')" style="border: none; outline: none; width: 100%; padding: 4px; font-size: 0.85rem; margin-left: 5px;">
-                </div>
+        const colors = palette[colorIndex % palette.length];
+        colorIndex++;
+        
+        let colHtml = `<div class="category-col" style="flex: 1; min-width: 250px; max-width: 400px; display: flex; flex-direction: column; gap: 10px; height: 100%; --active-bg: ${colors.bg}; --active-text: ${colors.text}; --active-border: ${colors.border}; --active-check: ${colors.check};">
+            <div style="background: ${colors.bg}; border: 1px solid ${colors.border}; border-radius: 8px; padding: 12px; text-align: center; font-weight: 800; color: ${colors.text}; text-transform: uppercase; font-size: 0.9rem;">
+                ${catName}
             </div>
-            <div class="category-col-content" id="col-content-${catId}" style="padding: 10px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1;">`;
+            <div style="display: flex; align-items: center; background: white; border: 1px solid var(--border-subtle); border-radius: 8px; padding: 6px 12px; min-height: 40px;">
+                <i data-lucide="search" style="width: 16px; height: 16px; color: #94a3b8;"></i>
+                <input type="text" placeholder="Buscar..." oninput="window.filterCategory(this, '${catId}')" style="border: none; outline: none; width: 100%; padding: 4px; font-size: 0.85rem; margin-left: 8px;">
+            </div>
+            <div class="category-col-content" id="col-content-${catId}" style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; padding-bottom: 20px; padding-right: 4px;">`;
         
         colHtml += items.map(p => {
             const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
-            return `<div class="split-card ${isActive ? 'active drink-active' : ''}" data-id="${p.id}" data-name="${p.name.toLowerCase()}" onclick="window.triggerToggleProduct('${p.id}')">
+            
+            return `<div class="split-card dynamic-card ${isActive ? 'active' : ''}" data-id="${p.id}" data-name="${p.name.toLowerCase()}" onclick="window.triggerToggleProduct('${p.id}')">
                    <span>${p.name}</span>
-                   <div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px"></i></div>
+                   <div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px; color: white;"></i></div>
                    </div>`;
         }).join('');
         
@@ -3482,6 +3495,9 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
+
 
 
 

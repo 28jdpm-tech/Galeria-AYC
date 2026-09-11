@@ -4302,3 +4302,21 @@ option {
     font-size: 15px;
     cursor: pointer;
 }
+
+.dynamic-card {
+    background: white;
+    color: inherit;
+    border: 1px solid #e2e8f0;
+}
+.dynamic-card.active {
+    background: var(--active-bg);
+    color: var(--active-text);
+    border-color: var(--active-border);
+}
+.dynamic-card .split-card-check {
+    display: none;
+    background: var(--active-check);
+}
+.dynamic-card.active .split-card-check {
+    display: flex;
+}
