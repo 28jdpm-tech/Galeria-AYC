@@ -3971,3 +3971,118 @@ option {
 }
 .pos-workspace.no-catalog { grid-template-columns: 1fr; max-width: 600px; margin: 0 auto; justify-content: center; }
 @media (max-width: 960px) { .pos-workspace.no-catalog { grid-template-columns: 1fr; } }
+
+/* NEW VERTICAL WORKSPACE STYLES */
+.pos-workspace.pos-workspace-vertical {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 15px;
+    gap: 15px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.pos-top-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.pos-active-client-area {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.pos-active-client-area.hidden {
+    display: none !important;
+}
+
+.active-client-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    margin-bottom: 15px;
+    border: 1px solid var(--accent-primary);
+}
+
+.active-client-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+}
+
+.active-client-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-accept-client {
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.btn-accept-client:hover {
+    background: var(--accent-hover);
+}
+
+.btn-delete-client {
+    background: rgba(220, 38, 38, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(220, 38, 38, 0.2);
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.btn-delete-client:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.pos-client-cart-area {
+    margin-top: 15px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+}
+
+.pos-global-footer {
+    margin-top: auto;
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+}
+
+/* Adjust catalog inside vertical view */
+#posCatalogColumn {
+    flex: 1;
+    overflow: visible;
+}
+.pos-products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+}

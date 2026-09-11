@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // FoodX POS PRO - Multiple Client Rows System
 // ============================================
 
@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cart: [],
         clients: [],
         activeClient: null,
+        isEditingClient: false,
         orderTotal: 0,
         categoryData: {},
         rowCounter: 0,
@@ -28,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Listen for config loaded from cloud
     window.addEventListener('configLoadedFromCloud', () => {
-        console.log('🔄 Config loaded from cloud, refreshing UI...');
+        console.log('ðŸ”„ Config loaded from cloud, refreshing UI...');
         renderPosCategories();
         renderPosProducts();
         renderPosCart();
@@ -321,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         name: f.name,
                         price: f.price || 0,
                         category: catId,
-                        icon: '🍴',
+                        icon: 'ðŸ´',
                         active: true
                     });
                 }
@@ -369,21 +370,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Render Products Grid
-    function renderPosProducts() {
+        function renderPosProducts() {
         const grid = document.getElementById('posProductsGrid');
-        const catalogCol = document.getElementById('posCatalogColumn');
-        const workspace = document.querySelector('.pos-workspace');
+        const activeArea = document.getElementById('posActiveClientArea');
+        const activeClientTitle = document.getElementById('activeClientTitle');
         
         if (!grid) return;
 
-        if (!state.activeClient) {
-            if (catalogCol) catalogCol.style.display = 'none';
-            if (workspace) workspace.classList.add('no-catalog');
+        if (!state.activeClient || !state.isEditingClient) {
+            if (activeArea) activeArea.classList.add('hidden');
             return;
         }
 
-        if (catalogCol) catalogCol.style.display = 'flex';
-        if (workspace) workspace.classList.remove('no-catalog');
+        if (activeArea) {
+            activeArea.classList.remove('hidden');
+            if (activeClientTitle) activeClientTitle.textContent = state.activeClient;
+        }
 
         const config = StorageManager.getConfig();
         let products = getActiveProductsList(config);
@@ -398,38 +400,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (products.length === 0) {
-            grid.innerHTML = `
+            grid.innerHTML = 
                 <div class="pos-empty-cart" style="grid-column: 1 / -1; min-height: 220px;">
                     <i data-lucide="package-x"></i>
                     <h4>No se encontraron productos</h4>
-                    <p>Prueba con otra búsqueda o selecciona otra categoría</p>
                 </div>
-            `;
+            ;
             if (typeof lucide !== 'undefined') lucide.createIcons();
             return;
         }
 
         grid.innerHTML = products.map(p => {
-            const inCartItem = state.cart.find(item => item.productId === p.id);
-            const inCartBadge = inCartItem ? `<span class="pos-card-badge">${inCartItem.qty} en orden</span>` : '';
+            const inCartItem = state.cart.find(item => item.productId === p.id && item.clientName === state.activeClient);
+            const inCartBadge = inCartItem ? <span class="pos-card-badge"> + inCartItem.qty +  en orden</span> : '';
             const catInfo = config.categories.find(c => c.id === p.category);
             const catName = catInfo ? catInfo.name : p.category;
 
-            return `
-                <div class="pos-product-card" data-product-id="${p.id}">
-                    ${inCartBadge}
+            return 
+                <div class="pos-product-card" data-product-id=" + p.id + ">
+                     + inCartBadge + 
                     <div>
-                        <div class="pos-card-name">${p.name}</div>
-                        <div class="pos-card-cat">${catName}</div>
+                        <div class="pos-card-name"> + p.name + </div>
+                        <div class="pos-card-cat"> + catName + </div>
                     </div>
                     <div class="pos-card-footer">
-                        <span class="pos-card-price">${formatPrice(p.price || 0)}</span>
+                        <span class="pos-card-price"> + formatPrice(p.price || 0) + </span>
                         <button type="button" class="pos-card-add-btn" title="Agregar">
                             <i data-lucide="plus"></i>
                         </button>
                     </div>
                 </div>
-            `;
+            ;
         }).join('');
 
         grid.querySelectorAll('.pos-product-card').forEach(card => {
@@ -445,93 +446,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
-    // Add to Cart
-    function addToCart(product, qty = 1) {
-        if (!state.activeClient) {
-            showNotification('Primero agrega o selecciona un cliente', 'error');
-            return;
-        }
-
-        const existing = state.cart.find(item => item.productId === product.id && (!item.notes || item.notes === '') && item.clientName === state.activeClient);
-        if (existing) {
-            existing.qty += qty;
-            existing.subtotal = existing.qty * existing.unitPrice;
-        } else {
-            state.cart.push({
-                id: generateId(),
-                productId: product.id,
-                name: product.name,
-                category: product.category,
-                unitPrice: product.price || 0,
-                qty: qty,
-                notes: '',
-                extras: [],
-                subtotal: (product.price || 0) * qty,
-                clientName: state.activeClient
-            });
-        }
-
-        if (navigator.vibrate) navigator.vibrate(25);
-        renderPosCart();
-        renderPosProducts();
-    }
-
-    // Update Cart Item Quantity
-    function updateCartItemQty(cartItemId, delta) {
-        const item = state.cart.find(i => i.id === cartItemId);
-        if (!item) return;
-
-        item.qty += delta;
-        if (item.qty <= 0) {
-            state.cart = state.cart.filter(i => i.id !== cartItemId);
-        } else {
-            item.subtotal = item.qty * item.unitPrice;
-        }
-
-        renderPosCart();
-        renderPosProducts();
-    }
-
-    // Remove Item from Cart
-    function removeCartItem(cartItemId) {
-        state.cart = state.cart.filter(i => i.id !== cartItemId);
-        renderPosCart();
-        renderPosProducts();
-    }
-
-    // Clear Cart
-    function clearPosCart(confirmClear = false) {
-        if (confirmClear && state.cart.length > 0) {
-            if (!confirm('¿Deseas vaciar todos los productos del pedido?')) return;
-        }
-        state.cart = [];
-        state.clients = [];
-        state.activeClient = null;
-        state.appendingOrderId = null;
-        updateSubmitButtonText();
-        renderClientsTabs();
-        renderPosCart();
-        renderPosProducts();
-    }
-
-    function updateSubmitButtonText() {
-        const btnText = document.getElementById('posSubmitBtnText');
-        if (!btnText) return;
-        if (state.appendingOrderId) {
-            const orig = StorageManager.getOrders().find(o => o.id == state.appendingOrderId);
-            btnText.textContent = `AÑADIR A ${orig ? orig.orderNumber : 'ORDEN'}`;
-        } else {
-            btnText.textContent = 'ENVIAR A COCINA';
-        }
-    }
-
-    // Render Cart
     function renderPosCart() {
         const emptyState = document.getElementById('posEmptyCart');
         const listContainer = document.getElementById('posCartItemsList');
         const totalQtyEl = document.getElementById('posTotalQty');
         const grandTotalEl = document.getElementById('posGrandTotal');
-        const totalAmountFooter = elements.totalAmount || document.getElementById('totalAmount');
+        const totalAmountFooter = document.getElementById('totalAmount');
 
         let totalQty = 0;
         let grandTotal = 0;
@@ -543,13 +463,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         state.orderTotal = grandTotal;
 
-        if (totalQtyEl) totalQtyEl.textContent = `${totalQty} uds`;
+        if (totalQtyEl) totalQtyEl.textContent = totalQty + ' uds';
         if (grandTotalEl) grandTotalEl.textContent = formatPrice(grandTotal);
         if (totalAmountFooter) totalAmountFooter.textContent = formatPrice(grandTotal);
 
         if (!listContainer || !emptyState) return;
 
-        if (state.cart.length === 0) {
+        // ONLY SHOW ITEMS FOR ACTIVE CLIENT IN THIS VIEW
+        const activeClientItems = state.cart.filter(item => item.clientName === state.activeClient);
+
+        if (activeClientItems.length === 0) {
             emptyState.style.display = 'flex';
             listContainer.innerHTML = '';
             return;
@@ -557,91 +480,94 @@ document.addEventListener('DOMContentLoaded', () => {
 
         emptyState.style.display = 'none';
 
-        const clientsObj = {};
-        state.clients.forEach(c => clientsObj[c] = []);
-        state.cart.forEach(item => {
-            if (!clientsObj[item.clientName]) clientsObj[item.clientName] = [];
-            clientsObj[item.clientName].push(item);
-        });
-
         let html = '';
-        for (const [clientName, items] of Object.entries(clientsObj)) {
-            if (items.length === 0) continue;
-            
-            html += `
-                <div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-gold); padding: 12px 0 4px; border-bottom: 1px solid var(--border-subtle); margin-top: 8px; text-transform: uppercase;">
-                    <i data-lucide="user" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Cliente: ${clientName}
-                </div>
-            `;
-
-            html += items.map(item => `
-                <div class="pos-cart-item" data-cart-item-id="${item.id}">
-                    <div class="pos-cart-item-top">
-                        <div style="flex: 1;">
-                            <div class="pos-cart-item-name">${item.name}</div>
-                            <div class="pos-cart-item-unit-price">${formatPrice(item.unitPrice)} c/u</div>
-                            ${item.notes ? `<div class="pos-cart-item-note"><i data-lucide="message-square" style="width: 10px; height: 10px; display: inline; vertical-align: middle;"></i> ${item.notes}</div>` : ''}
-                        </div>
-                        <div class="pos-cart-item-actions">
-                            <button type="button" class="pos-item-action-btn" title="Agregar nota" onclick="window.openItemNoteModal('${item.id}')">
-                                <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
-                            </button>
-                            <button type="button" class="pos-item-action-btn delete" title="Eliminar" onclick="window.removeCartItem('${item.id}')">
-                                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
-                            </button>
-                        </div>
+        html += activeClientItems.map(item => 
+            <div class="pos-cart-item" data-cart-item-id=" + item.id + ">
+                <div class="pos-cart-item-top">
+                    <div style="flex: 1;">
+                        <div class="pos-cart-item-name"> + item.name + </div>
+                        <div class="pos-cart-item-unit-price"> + formatPrice(item.unitPrice) +  c/u</div>
+                         + (item.notes ? <div class="pos-cart-item-note"><i data-lucide="message-square" style="width: 10px; height: 10px; display: inline; vertical-align: middle;"></i>  + item.notes + </div> : '') + 
                     </div>
-                    <div class="pos-cart-item-bottom">
-                        <div class="pos-cart-stepper">
-                            <button type="button" class="pos-stepper-btn" onclick="window.updateCartItemQty('${item.id}', -1)">
-                                <i data-lucide="minus" style="width: 14px; height: 14px;"></i>
-                            </button>
-                            <span class="pos-stepper-qty">${item.qty}</span>
-                            <button type="button" class="pos-stepper-btn" onclick="window.updateCartItemQty('${item.id}', 1)">
-                                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
-                            </button>
-                        </div>
-                        <div class="pos-cart-item-subtotal">${formatPrice(item.subtotal)}</div>
+                    <div class="pos-cart-item-actions">
+                        <button type="button" class="pos-item-action-btn delete" title="Eliminar" onclick="window.removeCartItem(' + item.id + ')">
+                            <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                        </button>
                     </div>
                 </div>
-            `).join('');
-        }
+                <div class="pos-cart-item-bottom">
+                    <div class="pos-cart-stepper">
+                        <button type="button" class="pos-stepper-btn" onclick="window.updateCartItemQty(' + item.id + ', -1)">
+                            <i data-lucide="minus" style="width: 14px; height: 14px;"></i>
+                        </button>
+                        <span class="pos-stepper-qty"> + item.qty + </span>
+                        <button type="button" class="pos-stepper-btn" onclick="window.updateCartItemQty(' + item.id + ', 1)">
+                            <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
+                    <div class="pos-cart-item-subtotal"> + formatPrice(item.subtotal) + </div>
+                </div>
+            </div>
+        ).join('');
 
         listContainer.innerHTML = html;
-
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function renderClientsTabs() {
-        const tabsContainer = elements.posClientsTabs || document.getElementById('posClientsTabs');
+        const tabsContainer = document.getElementById('posClientsTabs');
         if (!tabsContainer) return;
 
-        tabsContainer.innerHTML = state.clients.map(clientName => `
-            <div class="pos-client-tab ${state.activeClient === clientName ? 'active' : ''}" data-client="${clientName}">
-                ${clientName}
+        tabsContainer.innerHTML = state.clients.map(clientName => 
+            <div class="pos-client-tab  + (state.activeClient === clientName ? 'active' : '') + " data-client=" + clientName + ">
+                 + clientName + 
             </div>
-        `).join('');
+        ).join('');
 
         tabsContainer.querySelectorAll('.pos-client-tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 state.activeClient = tab.dataset.client;
+                state.isEditingClient = true; // Open editor
                 renderClientsTabs();
                 renderPosProducts();
+                renderPosCart();
             });
         });
     }
 
-    if (elements.btnAddClient || document.getElementById('btnAddClient')) {
-        const btn = elements.btnAddClient || document.getElementById('btnAddClient');
-        btn.addEventListener('click', () => {
-            const defaultName = 'Cliente ' + (state.clients.length + 1);
-            const clientName = prompt('Nombre del cliente:', defaultName);
-            if (clientName && clientName.trim() !== '') {
-                const name = clientName.trim().toUpperCase();
-                if (!state.clients.includes(name)) {
-                    state.clients.push(name);
-                }
-                state.activeClient = name;
+    // Replace the button block
+    const addBtn = document.getElementById('btnAddClient');
+    if (addBtn) {
+        addBtn.addEventListener('click', () => {
+            const name = 'CLIENTE ' + (state.clients.length + 1);
+            if (!state.clients.includes(name)) {
+                state.clients.push(name);
+            }
+            state.activeClient = name;
+            state.isEditingClient = true;
+            renderClientsTabs();
+            renderPosProducts();
+            renderPosCart();
+        });
+    }
+
+    const btnAcceptClient = document.getElementById('btnAcceptClient');
+    if (btnAcceptClient) {
+        btnAcceptClient.addEventListener('click', () => {
+            state.isEditingClient = false;
+            renderClientsTabs();
+            renderPosProducts(); // Will hide the active area
+        });
+    }
+
+    const btnDeleteClient = document.getElementById('btnDeleteClient');
+    if (btnDeleteClient) {
+        btnDeleteClient.addEventListener('click', () => {
+            if (confirm('¿Eliminar ' + state.activeClient + ' y todos sus productos?')) {
+                state.cart = state.cart.filter(item => item.clientName !== state.activeClient);
+                state.clients = state.clients.filter(c => c !== state.activeClient);
+                state.activeClient = state.clients.length > 0 ? state.clients[0] : null;
+                state.isEditingClient = false;
                 renderClientsTabs();
                 renderPosProducts();
                 renderPosCart();
@@ -649,6 +575,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Expose Cart methods
     // Expose Cart methods to window for inline onclick handlers
     window.addToCart = addToCart;
     window.updateCartItemQty = updateCartItemQty;
@@ -725,7 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function submitOrder() {
         if (state.cart.length === 0) {
-            showNotification('⚠️ Agrega productos al pedido antes de enviar', 'error');
+            showNotification('âš ï¸ Agrega productos al pedido antes de enviar', 'error');
             return;
         }
 
@@ -734,7 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!state.serviceType) state.serviceType = 'salon';
 
         if (!state.appendingOrderId && state.clients.length === 0) {
-            showNotification('⚠️ Ingresa al menos un cliente en la orden', 'error');
+            showNotification('âš ï¸ Ingresa al menos un cliente en la orden', 'error');
             return;
         }
 
@@ -791,7 +718,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         paid: false
                     };
                     StorageManager.addOrder(partialOrder);
-                    showNotification(`Adición agregada al pedido ${originalOrder.orderNumber}`);
+                    showNotification(`AdiciÃ³n agregada al pedido ${originalOrder.orderNumber}`);
                 }
                 state.appendingOrderId = null;
             } else {
@@ -816,14 +743,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 StorageManager.addOrder(newOrder);
-                showNotification(`✅ Pedido ${newOrder.orderNumber} enviado a cocina`);
+                showNotification(`âœ… Pedido ${newOrder.orderNumber} enviado a cocina`);
                 showTicketModal(newOrder);
             }
 
             clearPosCart(false);
         } catch (err) {
             console.error('Error submitting order:', err);
-            showNotification('⚠️ Error al procesar pedido', 'error');
+            showNotification('âš ï¸ Error al procesar pedido', 'error');
         } finally {
             if (submitBtn) {
                 submitBtn.innerHTML = origText;
@@ -1099,7 +1026,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${!order.paid ? `
                             <button class="btn-append-items" onclick="event.stopPropagation(); window.appendToOrder('${order.id}')" 
                                 style="background: var(--accent-primary); color: white; border: none; padding: 4px 12px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                <i data-lucide="plus" style="width: 14px; height: 14px;"></i> AÑADIR
+                                <i data-lucide="plus" style="width: 14px; height: 14px;"></i> AÃ‘ADIR
                             </button>
                         ` : ''}
                     </div>
@@ -1151,7 +1078,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-        showNotification(`Añadiendo productos a la Orden ${order.orderNumber}`);
+        showNotification(`AÃ±adiendo productos a la Orden ${order.orderNumber}`);
         if (typeof lucide !== 'undefined') lucide.createIcons();
     };
 
@@ -1352,7 +1279,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const selectedRadio = document.querySelector('input[name="paymentMethod"]:checked');
 
                 if (!selectedRadio) {
-                    showNotification('⚠️ Selecciona un medio de pago', 'error');
+                    showNotification('âš ï¸ Selecciona un medio de pago', 'error');
                     return;
                 }
 
@@ -1367,7 +1294,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const total = efectivo + nequi + daviplata;
 
                     if (total < selectedPaymentOrder.totalPrice) {
-                        showNotification(`⚠️ Faltan $${formatPrice(selectedPaymentOrder.totalPrice - total).replace('$', '')} para completar el pago`, 'error');
+                        showNotification(`âš ï¸ Faltan $${formatPrice(selectedPaymentOrder.totalPrice - total).replace('$', '')} para completar el pago`, 'error');
                         return;
                     }
 
@@ -1427,7 +1354,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (totalEl && selectedPaymentOrder) {
             const diff = total - selectedPaymentOrder.totalPrice;
             if (diff >= 0) {
-                totalEl.innerHTML = `✓ Total: ${formatPrice(total)}`;
+                totalEl.innerHTML = `âœ“ Total: ${formatPrice(total)}`;
                 totalEl.style.color = '#059669';
             } else {
                 totalEl.innerHTML = `Faltan: ${formatPrice(Math.abs(diff))}`;
@@ -1454,7 +1381,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (selectedPaymentOrder.isPartial) {
                     // If it's a partial order (addition), delete it after printing
                     StorageManager.deleteOrder(selectedPaymentOrder.id);
-                    showNotification(`Ticket de adición impreso`);
+                    showNotification(`Ticket de adiciÃ³n impreso`);
                 } else {
                     // Normal order: Set as printed for checkout
                     StorageManager.updateOrder(selectedPaymentOrder.id, { checkoutPrinted: true });
@@ -1485,7 +1412,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!selectedPaymentOrder) return;
 
             const performDelete = async () => {
-                if (confirm(`¿Estás seguro de que deseas eliminar permanentemente el pedido ${selectedPaymentOrder.orderNumber}?`)) {
+                if (confirm(`Â¿EstÃ¡s seguro de que deseas eliminar permanentemente el pedido ${selectedPaymentOrder.orderNumber}?`)) {
                     await StorageManager.deleteOrder(selectedPaymentOrder.id);
                     showNotification(`Pedido ${selectedPaymentOrder.orderNumber} eliminado`);
                     elements.paymentModal.classList.add('hidden');
@@ -1622,7 +1549,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (catId === 'bebidas' || catName.includes('bebida')) {
                     totalBebidas += item.price;
                     orderDrinks += item.price;
-                    flavorStats.drinks[item.flavors[0] || 'Genérica'] = (flavorStats.drinks[item.flavors[0] || 'Genérica'] || 0) + item.qty;
+                    flavorStats.drinks[item.flavors[0] || 'GenÃ©rica'] = (flavorStats.drinks[item.flavors[0] || 'GenÃ©rica'] || 0) + item.qty;
                     categorized = true;
                 } else if (catId === 'desechables' || catName.includes('desechable')) {
                     totalDesechables += item.price;
@@ -2249,7 +2176,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!selectedHistoryOrder) return;
 
             const performDelete = async () => {
-                if (confirm(`¿Estás seguro de que deseas eliminar permanentemente el pedido ${selectedHistoryOrder.orderNumber}?`)) {
+                if (confirm(`Â¿EstÃ¡s seguro de que deseas eliminar permanentemente el pedido ${selectedHistoryOrder.orderNumber}?`)) {
                     await StorageManager.deleteOrder(selectedHistoryOrder.id);
                     showNotification(`Pedido ${selectedHistoryOrder.orderNumber} eliminado`);
                     elements.historyOrderModal.classList.add('hidden');
@@ -2367,7 +2294,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function generateTicketText(order) {
         if (!order || !order.items) return 'Error: Pedido sin productos';
         const TICKET_WIDTH = 26;
-        const labels = { salon: 'SALÓN', llevar: 'LLEVAR', domicilio: 'DOMICILIO' };
+        const labels = { salon: 'SALÃ“N', llevar: 'LLEVAR', domicilio: 'DOMICILIO' };
         const now = new Date(order.createdAt || Date.now());
         const dateStr = now.toLocaleDateString('es-CO');
         const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
@@ -2387,15 +2314,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return left + ' '.repeat(spaceNeeded) + right;
         };
 
-        const topDivider = '━'.repeat(TICKET_WIDTH);
-        const subDivider = '─'.repeat(TICKET_WIDTH);
+        const topDivider = 'â”'.repeat(TICKET_WIDTH);
+        const subDivider = 'â”€'.repeat(TICKET_WIDTH);
 
         let ticket = '';
         ticket += topDivider + '\n';
         if (order.isAppending) {
-            const sType = labels[order.serviceType] || 'SALÓN';
+            const sType = labels[order.serviceType] || 'SALÃ“N';
             ticket += center(`*** ${sType} ***`) + '\n';
-            ticket += center('(ADICIÓN)') + '\n';
+            ticket += center('(ADICIÃ“N)') + '\n';
         } else {
             ticket += center('COMANDA DE COCINA') + '\n';
             ticket += center('POS PRO') + '\n';
@@ -2408,7 +2335,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         ticket += topDivider + '\n';
         ticket += justify(dateStr, timeStr) + '\n';
-        ticket += center(`TIPO: ${labels[order.serviceType] || 'SALÓN'}`) + '\n';
+        ticket += center(`TIPO: ${labels[order.serviceType] || 'SALÃ“N'}`) + '\n';
         if (order.customerInfo) {
             ticket += center(`MESA/CLI: ${order.customerInfo}`) + '\n';
         }
@@ -2451,7 +2378,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ticket += subDivider + '\n';
         ticket += justify('TOTAL:', formatPrice(order.totalPrice)) + '\n';
         ticket += topDivider + '\n';
-        ticket += center('¡GRACIAS POR SU COMPRA!') + '\n';
+        ticket += center('Â¡GRACIAS POR SU COMPRA!') + '\n';
         ticket += topDivider + '\n\n\n.';
 
         return ticket;
@@ -2460,7 +2387,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function generateInvoiceText(order) {
         if (!order || !order.items) return 'Error: Pedido sin productos';
         const TICKET_WIDTH = 26;
-        const labels = { salon: 'SALÓN', llevar: 'LLEVAR', domicilio: 'DOMICILIO' };
+        const labels = { salon: 'SALÃ“N', llevar: 'LLEVAR', domicilio: 'DOMICILIO' };
         const now = new Date(order.createdAt || Date.now());
         const dateStr = now.toLocaleDateString('es-CO');
         const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
@@ -2480,8 +2407,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return left + ' '.repeat(spaceNeeded) + right;
         };
 
-        const topDivider = '━'.repeat(TICKET_WIDTH);
-        const subDivider = '─'.repeat(TICKET_WIDTH);
+        const topDivider = 'â”'.repeat(TICKET_WIDTH);
+        const subDivider = 'â”€'.repeat(TICKET_WIDTH);
 
         let ticket = '';
         ticket += center('FACTURA DE VENTA') + '\n';
@@ -2492,7 +2419,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         ticket += topDivider + '\n';
         ticket += justify(dateStr, timeStr) + '\n';
-        ticket += center(`TIPO: ${labels[order.serviceType] || 'SALÓN'}`) + '\n';
+        ticket += center(`TIPO: ${labels[order.serviceType] || 'SALÃ“N'}`) + '\n';
         if (order.customerInfo) {
             ticket += center(`MESA/CLI: ${order.customerInfo}`) + '\n';
         }
@@ -2623,7 +2550,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusEl.style.background = '#dcfce7';
                 statusEl.style.color = '#16a34a';
             } else if (netBalance < 0) {
-                statusEl.textContent = 'Déficit';
+                statusEl.textContent = 'DÃ©ficit';
                 statusEl.style.background = '#fee2e2';
                 statusEl.style.color = '#dc2626';
             } else {
@@ -2640,7 +2567,7 @@ document.addEventListener('DOMContentLoaded', () => {
             summaryEl.innerHTML = Object.entries(categoryTotals)
                 .sort((a, b) => b[1] - a[1])
                 .map(([catId, amount]) => {
-                    const cat = CATS[catId] || { label: catId, emoji: '📌' };
+                    const cat = CATS[catId] || { label: catId, emoji: 'ðŸ“Œ' };
                     const idx = allCatsForColors.findIndex(c => c.id === catId);
                     const color = expenseCatColors[idx % expenseCatColors.length] || '#6b7280';
                     return `
@@ -2669,8 +2596,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <thead>
                             <tr style="background: var(--bg-tertiary);">
                                 <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Fecha</th>
-                                <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Categoría</th>
-                                <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Descripción</th>
+                                <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">CategorÃ­a</th>
+                                <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">DescripciÃ³n</th>
                                 <th style="padding: 10px 12px; text-align: center; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Cant.</th>
                                 <th style="padding: 10px 12px; text-align: right; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Unit.</th>
                                 <th style="padding: 10px 12px; text-align: right; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Total</th>
@@ -2681,7 +2608,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
 
                 expenses.forEach(expense => {
-                    const cat = CATS[expense.category] || { label: 'Otros', emoji: '📌' };
+                    const cat = CATS[expense.category] || { label: 'Otros', emoji: 'ðŸ“Œ' };
                     const dateObj = new Date(expense.date || expense.createdAt);
                     const dateStr = dateObj.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: '2-digit' });
                     const qty = expense.qty || 1;
@@ -2745,7 +2672,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
                 <thead>
                     <tr style="background: var(--bg-tertiary);">
-                        <th style="padding: 8px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase;">Nombre de Categoría</th>
+                        <th style="padding: 8px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase;">Nombre de CategorÃ­a</th>
                         <th style="padding: 8px 6px; width: 60px; text-align: center; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase;">Acciones</th>
                     </tr>
                 </thead>
@@ -2759,11 +2686,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td style="padding: 8px 6px; text-align: center; white-space: nowrap;">
                         <button onclick="window.editExpenseCategory('${cat.id}')"
                             style="background: none; border: none; color: var(--accent-primary); cursor: pointer; padding: 4px; font-size: 1rem;" title="Editar">
-                            ✏️
+                            âœï¸
                         </button>
                         <button onclick="window.deleteExpenseCategory('${cat.id}')"
                             style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; margin-left: 2px; font-size: 1rem;" title="Eliminar">
-                            🗑️
+                            ðŸ—‘ï¸
                         </button>
                     </td>
                 </tr>
@@ -2775,7 +2702,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add new category form
         html += `
             <div style="display: flex; gap: var(--space-xs); align-items: center;">
-                <input type="text" id="newExpenseCatLabel" placeholder="Nombre de categoría"
+                <input type="text" id="newExpenseCatLabel" placeholder="Nombre de categorÃ­a"
                     style="flex: 1; padding: 8px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary); font-size: 0.85rem; box-sizing: border-box;">
                 <button onclick="window.addExpenseCategory()"
                     style="padding: 8px 14px; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: var(--radius-md); font-weight: 700; font-size: 0.8rem; cursor: pointer; white-space: nowrap;">
@@ -2792,7 +2719,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const label = document.getElementById('newExpenseCatLabel')?.value.trim();
 
         if (!label) {
-            showNotification('⚠️ Ingresa un nombre para la categoría', 'error');
+            showNotification('âš ï¸ Ingresa un nombre para la categorÃ­a', 'error');
             return;
         }
 
@@ -2800,13 +2727,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const id = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 
         if (cats.find(c => c.id === id)) {
-            showNotification('⚠️ Ya existe una categoría con ese nombre', 'error');
+            showNotification('âš ï¸ Ya existe una categorÃ­a con ese nombre', 'error');
             return;
         }
 
-        cats.push({ id, label, emoji: '📌' });
+        cats.push({ id, label, emoji: 'ðŸ“Œ' });
         StorageManager.saveExpenseCategories(cats);
-        showNotification(`Categoría "${label}" creada`);
+        showNotification(`CategorÃ­a "${label}" creada`);
         renderExpensesPage();
     };
 
@@ -2815,21 +2742,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const cat = cats.find(c => c.id === catId);
         if (!cat) return;
 
-        const newLabel = prompt('Nombre de la categoría:', cat.label);
+        const newLabel = prompt('Nombre de la categorÃ­a:', cat.label);
         if (newLabel === null) return;
 
         cat.label = newLabel.trim() || cat.label;
         StorageManager.saveExpenseCategories(cats);
-        showNotification(`Categoría actualizada: ${cat.label}`);
+        showNotification(`CategorÃ­a actualizada: ${cat.label}`);
         renderExpensesPage();
     };
 
     window.deleteExpenseCategory = function (catId) {
         const performDelete = () => {
-            if (!confirm('¿Eliminar esta categoría de egreso?')) return;
+            if (!confirm('Â¿Eliminar esta categorÃ­a de egreso?')) return;
             const cats = StorageManager.getExpenseCategories().filter(c => c.id !== catId);
             StorageManager.saveExpenseCategories(cats);
-            showNotification('Categoría eliminada');
+            showNotification('CategorÃ­a eliminada');
             renderExpensesPage();
         };
 
@@ -2854,17 +2781,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const date = document.getElementById('expenseDate').value;
 
             if (!amount || amount <= 0) {
-                showNotification('⚠️ Ingresa un monto válido', 'error');
+                showNotification('âš ï¸ Ingresa un monto vÃ¡lido', 'error');
                 return;
             }
 
             if (!date) {
-                showNotification('⚠️ Selecciona una fecha', 'error');
+                showNotification('âš ï¸ Selecciona una fecha', 'error');
                 return;
             }
 
             const CATS = getExpenseCatMap();
-            const cat = CATS[category] || { label: 'Otros', emoji: '📌' };
+            const cat = CATS[category] || { label: 'Otros', emoji: 'ðŸ“Œ' };
 
             StorageManager.addExpense({
                 category: category,
@@ -2930,7 +2857,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Delete expense (global handler)
     window.deleteExpense = function (expenseId) {
         const performDelete = async () => {
-            if (confirm('¿Eliminar este egreso?')) {
+            if (confirm('Â¿Eliminar este egreso?')) {
                 await StorageManager.deleteExpense(expenseId);
                 showNotification('Egreso eliminado');
                 renderExpensesPage();
@@ -2978,7 +2905,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (expenses.length === 0) {
-            showNotification('⚠️ No hay egresos para descargar', 'error');
+            showNotification('âš ï¸ No hay egresos para descargar', 'error');
             return;
         }
 
@@ -2992,12 +2919,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const CATS = getExpenseCatMap();
 
-        // Build data rows matching the table: Fecha | Categoría | Descripción | Cant. | V. Unit. | Total
-        const rows = [['Fecha', 'Categoría', 'Descripción', 'Cant.', 'V. Unit.', 'Total']];
+        // Build data rows matching the table: Fecha | CategorÃ­a | DescripciÃ³n | Cant. | V. Unit. | Total
+        const rows = [['Fecha', 'CategorÃ­a', 'DescripciÃ³n', 'Cant.', 'V. Unit.', 'Total']];
 
         let total = 0;
         expenses.forEach(expense => {
-            const cat = CATS[expense.category] || { label: 'Otros', emoji: '📌' };
+            const cat = CATS[expense.category] || { label: 'Otros', emoji: 'ðŸ“Œ' };
             const dateObj = new Date(expense.date || expense.createdAt);
             const dateStr = dateObj.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
             const qty = expense.qty || 1;
@@ -3024,8 +2951,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set column widths
         ws['!cols'] = [
             { wch: 12 },  // Fecha
-            { wch: 20 },  // Categoría
-            { wch: 30 },  // Descripción
+            { wch: 20 },  // CategorÃ­a
+            { wch: 30 },  // DescripciÃ³n
             { wch: 8 },   // Cant.
             { wch: 12 },  // V. Unit.
             { wch: 12 }   // Total
@@ -3040,7 +2967,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         XLSX.writeFile(wb, `Egresos_${periodLabel}_${dateFile}.xlsx`);
 
-        showNotification('📥 Excel descargado');
+        showNotification('ðŸ“¥ Excel descargado');
     };
 
     // ============================================
@@ -3197,12 +3124,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.editAdminItem = function (type, id, parentId = null) {
         adminEditContext = { type, id, parentId };
         const config = StorageManager.getConfig();
-        const displayType = type === 'flavor' ? 'Producto' : (type === 'category' ? 'Categoría' : (type === 'extra' ? 'Adicional' : 'Observación'));
+        const displayType = type === 'flavor' ? 'Producto' : (type === 'category' ? 'CategorÃ­a' : (type === 'extra' ? 'Adicional' : 'ObservaciÃ³n'));
         elements.adminModalTitle.textContent = `Editar ${displayType}`;
         let html = '';
         if (type === 'category') {
             const item = config.categories.find(c => c.id === id);
-            html = `<div class="form-group"><label>Nombre de Categoría</label><input type="text" id="editName" value="${item.name}"></div>`;
+            html = `<div class="form-group"><label>Nombre de CategorÃ­a</label><input type="text" id="editName" value="${item.name}"></div>`;
         } else if (type === 'flavor') {
             const allProds = getActiveProductsList(config);
             const item = allProds.find(p => p.id === id) || (config.flavors[parentId] && config.flavors[parentId].find(f => f.id === id)) || { name: '', price: 0 };
@@ -3214,7 +3141,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="form-group"><label>Precio ($)</label><input type="number" id="editPrice" value="${item.price}"></div>`;
         } else if (type === 'observation') {
             const item = config.observations[parentId].find(o => o.id === id);
-            html = `<div class="form-group"><label>Descripción / Nota</label><input type="text" id="editName" value="${item.name}"></div>
+            html = `<div class="form-group"><label>DescripciÃ³n / Nota</label><input type="text" id="editName" value="${item.name}"></div>
                     <div class="form-group"><label>Precio Extra si aplica ($)</label><input type="number" id="editPrice" value="${item.price || 0}"></div>`;
         }
         elements.adminModalBody.innerHTML = html;
@@ -3222,7 +3149,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.deleteAdminItem = function (type, id, pId) {
-        if (!confirm('¿Seguro que deseas eliminar este elemento?')) return;
+        if (!confirm('Â¿Seguro que deseas eliminar este elemento?')) return;
         const config = StorageManager.getConfig();
         if (type === 'category') {
             config.categories = config.categories.filter(c => c.id !== id);
@@ -3255,7 +3182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const { type, id, parentId } = adminEditContext;
             const name = document.getElementById('editName').value.trim();
             if (!name) {
-                showNotification('Ingresa un nombre válido', 'error');
+                showNotification('Ingresa un nombre vÃ¡lido', 'error');
                 return;
             }
 
@@ -3342,9 +3269,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elements.addCategoryBtn) {
         elements.addCategoryBtn.onclick = () => {
             adminEditContext = { type: 'category', id: null };
-            elements.adminModalTitle.textContent = 'Nueva Categoría';
+            elements.adminModalTitle.textContent = 'Nueva CategorÃ­a';
             elements.adminModalBody.innerHTML = `
-                <div class="form-group"><label>Nombre de Categoría</label><input type="text" id="editName" placeholder="Ej: Panes Especiales"></div>
+                <div class="form-group"><label>Nombre de CategorÃ­a</label><input type="text" id="editName" placeholder="Ej: Panes Especiales"></div>
             `;
             elements.adminModal.classList.add('open');
         };
@@ -3378,7 +3305,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.addObsBtn.onclick = () => {
             const catId = elements.adminCategorySelectObs.value;
             adminEditContext = { type: 'observation', id: null, parentId: catId };
-            elements.adminModalTitle.textContent = 'Nueva Observación';
+            elements.adminModalTitle.textContent = 'Nueva ObservaciÃ³n';
             elements.adminModalBody.innerHTML = `
                 <div class="form-group"><label>Nombre</label><input type="text" id="editName"></div>
                 <div class="form-group"><label>Precio</label><input type="number" id="editPrice" value="0"></div>
@@ -3414,7 +3341,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.pendingAdminPage = null;
                 }
             } else {
-                showNotification('Contraseña incorrecta', 'error');
+                showNotification('ContraseÃ±a incorrecta', 'error');
                 elements.adminPasswordInput.value = '';
                 elements.adminPasswordInput.focus();
             }
@@ -3440,12 +3367,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const confirmPass = elements.confirmAdminPassword.value;
 
             if (newPass.length < 4) {
-                showNotification('La contraseña debe tener al menos 4 caracteres', 'error');
+                showNotification('La contraseÃ±a debe tener al menos 4 caracteres', 'error');
                 return;
             }
 
             if (newPass !== confirmPass) {
-                showNotification('Las contraseñas no coinciden', 'error');
+                showNotification('Las contraseÃ±as no coinciden', 'error');
                 return;
             }
 
@@ -3453,7 +3380,7 @@ document.addEventListener('DOMContentLoaded', () => {
             config.adminPassword = newPass;
             StorageManager.saveConfig(config);
 
-            showNotification('Contraseña actualizada correctamente');
+            showNotification('ContraseÃ±a actualizada correctamente');
             elements.newAdminPassword.value = '';
             elements.confirmAdminPassword.value = '';
         });
@@ -3481,17 +3408,17 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('foodx_order_counter', '0');
             localStorage.setItem('foodx_last_order_date', new Date().toDateString());
 
-            showNotification('✅ Contador reiniciado a #001');
+            showNotification('âœ… Contador reiniciado a #001');
             loadCurrentOrderCounter();
         } catch (error) {
             console.error('Error resetting counter:', error);
-            showNotification('⚠️ Error al reiniciar: ' + error.message, 'error');
+            showNotification('âš ï¸ Error al reiniciar: ' + error.message, 'error');
         }
     }
 
     if (resetOrderCounterBtn) {
         resetOrderCounterBtn.addEventListener('click', async () => {
-            if (confirm('¿Estás seguro que deseas reiniciar el contador de pedidos a #001?')) {
+            if (confirm('Â¿EstÃ¡s seguro que deseas reiniciar el contador de pedidos a #001?')) {
                 await resetOrderCounter();
             }
         });
@@ -3603,3 +3530,5 @@ document.addEventListener('DOMContentLoaded', () => {
     updateOrderTotal();
   }
 });
+
+

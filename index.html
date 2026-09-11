@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Galería AYC - Sistema de Gestión</title>
-    <meta name="description" content="Sistema de gestión para Galería AYC">
+    <title>GalerÃ­a AYC - Sistema de GestiÃ³n</title>
+    <meta name="description" content="Sistema de gestiÃ³n para GalerÃ­a AYC">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,7 +30,7 @@
         <!-- Header -->
         <header class="app-header">
             <div class="header-brand">
-                <span class="brand-name">GALERÍA AYC</span>
+                <span class="brand-name">GALERÃA AYC</span>
                 <span class="brand-subtitle">ORDERING</span>
             </div>
             <button class="menu-btn" id="menuBtn">
@@ -43,7 +43,7 @@
             <div class="drawer-overlay" id="drawerOverlay"></div>
             <div class="drawer-content">
                 <div class="drawer-header">
-                    <span class="brand-name">GALERÍA AYC</span>
+                    <span class="brand-name">GALERÃA AYC</span>
                     <button class="close-drawer" id="closeDrawer">
                         <i data-lucide="x"></i>
                     </button>
@@ -88,95 +88,95 @@
         <main class="main-content">
             <!-- New Order Page (Multi-Sector POS) -->
             <div class="page active" id="page-new-order">
-                <div class="pos-workspace">
-                    <!-- Left: Catalog & Search -->
-                    <div class="pos-catalog-column" id="posCatalogColumn">
-                        <!-- Search Bar -->
-                        <div class="pos-search-bar-wrap">
-                            <div class="pos-search-input-box">
-                                <i data-lucide="search"></i>
-                                <input type="text" id="posProductSearch" placeholder="Buscar producto o presiona una categoría..." autocomplete="off">
-                                <button type="button" class="pos-clear-search hidden" id="posClearSearch">
-                                    <i data-lucide="x"></i>
+                                <div class="pos-workspace pos-workspace-vertical" id="posWorkspace">
+                    
+                    <!-- Top Controls: Service Type & Clients -->
+                    <div class="pos-top-controls">
+                        <div class="service-tabs">
+                            <button type="button" class="service-tab active" data-service="salon">SALÓN</button>
+                            <button type="button" class="service-tab" data-service="llevar">LLEVAR</button>
+                            <button type="button" class="service-tab" data-service="domicilio">DOMICILIO</button>
+                        </div>
+                        
+                        <div class="pos-clients-header">
+                            <div id="posClientsTabs" class="pos-clients-tabs">
+                                <!-- Tabs for Cliente 1, Cliente 2, etc will go here -->
+                            </div>
+                            <button type="button" id="btnAddClient" class="pos-add-client-btn">
+                                AGREGAR CLIENTE
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Active Client Editing Area -->
+                    <div id="posActiveClientArea" class="pos-active-client-area hidden">
+                        <div class="active-client-header">
+                            <h3 id="activeClientTitle">Cliente</h3>
+                            <div class="active-client-actions">
+                                <button type="button" id="btnAcceptClient" class="btn-accept-client">
+                                    <i data-lucide="check-circle"></i> ACEPTAR
+                                </button>
+                                <button type="button" id="btnDeleteClient" class="btn-delete-client">
+                                    <i data-lucide="trash-2"></i> ELIMINAR
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Category Filter Chips -->
-                        <div class="pos-categories-bar" id="posCategoriesBar">
-                            <!-- Category chips rendered via JS -->
+                        <!-- Catalog & Search -->
+                        <div class="pos-catalog-column" id="posCatalogColumn">
+                            <div class="pos-search-bar-wrap">
+                                <div class="pos-search-input-box">
+                                    <i data-lucide="search"></i>
+                                    <input type="text" id="posProductSearch" placeholder="Buscar producto o presiona una categoría..." autocomplete="off">
+                                    <button type="button" class="pos-clear-search hidden" id="posClearSearch">
+                                        <i data-lucide="x"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="pos-categories-bar" id="posCategoriesBar"></div>
+                            <div class="pos-products-grid" id="posProductsGrid">
+                                <div class="empty-state">
+                                    <i data-lucide="loader-2" class="animate-spin"></i>
+                                    <p>Cargando catálogo...</p>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Products Grid -->
-                        <div class="pos-products-grid" id="posProductsGrid">
-                            <!-- Products rendered via JS -->
-                            <div class="empty-state">
-                                <i data-lucide="loader-2" class="animate-spin"></i>
-                                <p>Cargando catálogo...</p>
+                        <!-- Order Items List for this client -->
+                        <div class="pos-client-cart-area">
+                            <div class="pos-order-items-wrapper">
+                                <div class="pos-empty-cart" id="posEmptyCart">
+                                    <i data-lucide="shopping-cart"></i>
+                                    <h4>Pedido Vacío</h4>
+                                    <p>Toca los productos para agregarlos</p>
+                                </div>
+                                <div class="pos-cart-items-list" id="posCartItemsList">
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Right: Active Order / Comanda Panel -->
-                    <div class="pos-order-column" id="posOrderColumn">
-                        <!-- Order Controls: Service Type & Customer/Table -->
-                        <div class="pos-order-header">
-                            <div class="service-tabs">
-                                <button type="button" class="service-tab active" data-service="salon">
-                                    SALÓN
-                                </button>
-                                <button type="button" class="service-tab" data-service="llevar">
-                                    LLEVAR
-                                </button>
-                                <button type="button" class="service-tab" data-service="domicilio">
-                                    DOMICILIO
-                                </button>
+                    <!-- Global Order Summary & Actions (Bottom) -->
+                    <div class="pos-global-footer">
+                        <div class="pos-totals-box">
+                            <div class="pos-totals-row">
+                                <span>Artículos en orden</span>
+                                <strong id="posTotalQty">0 uds</strong>
                             </div>
-
-                            <div class="pos-clients-header">
-                                <div id="posClientsTabs" class="pos-clients-tabs">
-                                    <!-- Tabs for Cliente 1, Cliente 2, etc will go here -->
-                                </div>
-                                <button type="button" id="btnAddClient" class="pos-add-client-btn">
-                                    AGREGAR CLIENTE
-                                </button>
+                            <div class="pos-totals-row total-highlight">
+                                <span>TOTAL VENTA</span>
+                                <strong class="pos-grand-total" id="posGrandTotal"></strong>
                             </div>
                         </div>
-
-                        <!-- Order Items List -->
-                        <div class="pos-order-items-wrapper">
-                            <div class="pos-empty-cart" id="posEmptyCart">
-                                <i data-lucide="shopping-cart"></i>
-                                <h4>Comanda Vacía</h4>
-                                <p>Toca los productos del catálogo para agregarlos al pedido</p>
-                            </div>
-                            <div class="pos-cart-items-list" id="posCartItemsList">
-                                <!-- Cart items rendered via JS -->
-                            </div>
-                        </div>
-
-                        <!-- Order Summary & Actions -->
-                        <div class="pos-order-footer">
-                            <div class="pos-totals-box">
-                                <div class="pos-totals-row">
-                                    <span>Artículos en orden</span>
-                                    <strong id="posTotalQty">0 uds</strong>
-                                </div>
-                                <div class="pos-totals-row total-highlight">
-                                    <span>TOTAL VENTA</span>
-                                    <strong class="pos-grand-total" id="posGrandTotal">$0</strong>
-                                </div>
-                            </div>
-                            <div class="pos-order-actions">
-                                <button type="button" class="btn-pos-clear" id="posClearCartBtn" title="Vaciar Comanda">
-                                    <i data-lucide="trash-2"></i>
-                                    <span>Limpiar</span>
-                                </button>
-                                <button type="button" class="btn-pos-submit" id="posSubmitOrderBtn">
-                                    <i data-lucide="send"></i>
-                                    <span id="posSubmitBtnText">ENVIAR A COCINA</span>
-                                </button>
-                            </div>
+                        <div class="pos-order-actions">
+                            <button type="button" class="btn-pos-clear" id="posClearCartBtn" title="Vaciar Comanda">
+                                <i data-lucide="trash-2"></i>
+                                <span>Limpiar Todo</span>
+                            </button>
+                            <button type="button" class="btn-pos-submit" id="posSubmitOrderBtn">
+                                <i data-lucide="send"></i>
+                                <span id="posSubmitBtnText">ENVIAR A COCINA</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -271,7 +271,7 @@
 
                         <div class="payment-methods-container" style="margin: var(--space-md) 0;">
                             <label
-                                style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem;">Método
+                                style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem;">MÃ©todo
                                 de Pago:</label>
                             <div class="method-options" style="display: flex; gap: 8px; flex-wrap: wrap;">
                                 <label class="method-label" style="flex: 1; min-width: 70px; cursor: pointer;">
@@ -390,7 +390,7 @@
 
                 <!-- History Tabs -->
                 <div class="history-tabs">
-                    <button class="history-tab active" data-tab="today">Comandas del Día</button>
+                    <button class="history-tab active" data-tab="today">Comandas del DÃ­a</button>
                     <button class="history-tab" data-tab="date">Por Fecha</button>
                 </div>
 
@@ -485,10 +485,10 @@
                         <label>Reporte por:</label>
                         <select id="reportPeriodSelect" class="date-picker-input">
                             <option value="today">Hoy</option>
-                            <option value="date">Día Específico</option>
+                            <option value="date">DÃ­a EspecÃ­fico</option>
                             <option value="month">Mes Actual</option>
-                            <option value="specific-month">Mes Específico</option>
-                            <option value="total">Histórico Total</option>
+                            <option value="specific-month">Mes EspecÃ­fico</option>
+                            <option value="total">HistÃ³rico Total</option>
                         </select>
                     </div>
                     <div class="filter-group hidden" id="reportDatePickerGroup">
@@ -589,7 +589,7 @@
                         <div class="report-section">
                             <div class="section-header">
                                 <i data-lucide="layers"></i>
-                                <h3>Ventas por Categoría</h3>
+                                <h3>Ventas por CategorÃ­a</h3>
                             </div>
                             <div class="category-sales-list" id="categorySalesList"></div>
                         </div>
@@ -616,7 +616,7 @@
                         <div class="report-section">
                             <div class="section-header">
                                 <i data-lucide="award"></i>
-                                <h3>Sabores Más Vendidos</h3>
+                                <h3>Sabores MÃ¡s Vendidos</h3>
                             </div>
                             <div class="compact-stats-list" id="flavorSalesList"></div>
                         </div>
@@ -624,7 +624,7 @@
                         <div class="report-section">
                             <div class="section-header">
                                 <i data-lucide="maximize"></i>
-                                <h3>Distribución por Tamaño</h3>
+                                <h3>DistribuciÃ³n por TamaÃ±o</h3>
                             </div>
                             <div class="size-stats-grid" id="sizeSalesList"></div>
                         </div>
@@ -721,7 +721,7 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm);">
                             <div style="grid-column: 1 / -1;">
                                 <label
-                                    style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Categoría</label>
+                                    style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: block;">CategorÃ­a</label>
                                 <select id="expenseCategory"
                                     style="width: 100%; padding: 10px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary); font-size: 0.9rem;">
                                     <!-- Populated dynamically from admin categories -->
@@ -729,7 +729,7 @@
                             </div>
                             <div style="grid-column: 1 / -1;">
                                 <label
-                                    style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Descripción</label>
+                                    style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: block;">DescripciÃ³n</label>
                                 <input type="text" id="expenseDescription"
                                     placeholder="Ej: Compra de pan, pago de luz..."
                                     style="width: 100%; padding: 10px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary); font-size: 0.9rem; box-sizing: border-box;">
@@ -768,7 +768,7 @@
                             style="flex: 1; padding: 10px 12px; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary); font-size: 0.85rem;">
                             <option value="today">Hoy</option>
                             <option value="month">Este Mes</option>
-                            <option value="specific-month">Mes Específico</option>
+                            <option value="specific-month">Mes EspecÃ­fico</option>
                             <option value="total">Todo</option>
                         </select>
                         <input type="month" id="expenseMonthPicker" class="hidden"
@@ -827,7 +827,7 @@
 
                     <!-- Description Search -->
                     <div style="margin-bottom: var(--space-sm); position: relative;">
-                        <input type="text" id="expenseSearchInput" placeholder="Buscar descripción..."
+                        <input type="text" id="expenseSearchInput" placeholder="Buscar descripciÃ³n..."
                             style="width: 100%; padding: 8px 12px 8px 32px; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary); font-size: 0.85rem; box-sizing: border-box;">
                         <i data-lucide="search"
                             style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--text-muted);"></i>
@@ -840,11 +840,11 @@
             <!-- Admin Page -->
             <div class="page" id="page-admin">
                 <div class="page-title-bar">
-                    <h2>Administración del Sistema</h2>
+                    <h2>AdministraciÃ³n del Sistema</h2>
                 </div>
 
                 <div class="admin-tabs">
-                    <button class="admin-tab active" data-tab="categories">Categorías</button>
+                    <button class="admin-tab active" data-tab="categories">CategorÃ­as</button>
                     <button class="admin-tab" data-tab="flavors">Productos</button>
                     <button class="admin-tab" data-tab="extras">Adicionales</button>
                     <button class="admin-tab" data-tab="observations">Observaciones</button>
@@ -856,9 +856,9 @@
                     <!-- Categories Panel -->
                     <div class="admin-panel active" id="panel-categories">
                         <div class="panel-header">
-                            <h3>Gestionar Categorías</h3>
+                            <h3>Gestionar CategorÃ­as</h3>
                             <button class="btn-add" id="addCategoryBtn">
-                                <i data-lucide="plus"></i> Nueva Categoría
+                                <i data-lucide="plus"></i> Nueva CategorÃ­a
                             </button>
                         </div>
                         <div class="admin-list" id="adminCategoriesList"></div>
@@ -902,14 +902,14 @@
                         </div>
                         <div class="admin-list" id="adminObsList"></div>
                         <button class="btn-add-inline" id="addObsBtn">
-                            <i data-lucide="plus"></i> Agregar Observación
+                            <i data-lucide="plus"></i> Agregar ObservaciÃ³n
                         </button>
                     </div>
 
                     <!-- Expense Categories Panel -->
                     <div class="admin-panel" id="panel-expense-cats">
                         <div class="panel-header">
-                            <h3>Categorías de Egresos</h3>
+                            <h3>CategorÃ­as de Egresos</h3>
                         </div>
                         <div id="expenseCatManager"></div>
                     </div>
@@ -920,23 +920,23 @@
                             <h3>Seguridad y Acceso</h3>
                         </div>
                         <div class="security-card">
-                            <h4><i data-lucide="shield-check"></i> Cambiar Contraseña de Administrador</h4>
+                            <h4><i data-lucide="shield-check"></i> Cambiar ContraseÃ±a de Administrador</h4>
                             <div class="form-group">
-                                <label>Nueva Contraseña</label>
-                                <input type="password" id="newAdminPassword" placeholder="Mínimo 4 caracteres">
+                                <label>Nueva ContraseÃ±a</label>
+                                <input type="password" id="newAdminPassword" placeholder="MÃ­nimo 4 caracteres">
                             </div>
                             <div class="form-group">
-                                <label>Confirmar Contraseña</label>
-                                <input type="password" id="confirmAdminPassword" placeholder="Repite la contraseña">
+                                <label>Confirmar ContraseÃ±a</label>
+                                <input type="password" id="confirmAdminPassword" placeholder="Repite la contraseÃ±a">
                             </div>
                             <button class="btn-pay" id="saveAdminPasswordBtn"
                                 style="width: 100%; margin-top: var(--space-md);">
-                                <i data-lucide="save"></i> Actualizar Contraseña
+                                <i data-lucide="save"></i> Actualizar ContraseÃ±a
                             </button>
                             <p
                                 style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--space-md); text-align: center;">
                                 <i data-lucide="info" style="width: 12px; height: 12px; vertical-align: middle;"></i>
-                                La nueva contraseña se sincronizará con todos los dispositivos.
+                                La nueva contraseÃ±a se sincronizarÃ¡ con todos los dispositivos.
                             </p>
                         </div>
 
@@ -946,7 +946,7 @@
                             <h4><i data-lucide="refresh-cw"></i> Reiniciar Contador de Pedidos</h4>
                             <p
                                 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: var(--space-md);">
-                                Reinicia el contador de pedidos a #001. Útil para pruebas o inicio de jornada.
+                                Reinicia el contador de pedidos a #001. Ãštil para pruebas o inicio de jornada.
                             </p>
                             <div
                                 style="display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-md);">
@@ -962,7 +962,7 @@
                                 style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--space-md); text-align: center;">
                                 <i data-lucide="alert-triangle"
                                     style="width: 12px; height: 12px; vertical-align: middle; color: #f59e0b;"></i>
-                                Esta acción se sincroniza en todos los dispositivos.
+                                Esta acciÃ³n se sincroniza en todos los dispositivos.
                             </p>
                         </div>
                     </div>
@@ -992,12 +992,12 @@
                 <div class="modal-overlay" id="closeItemNoteOverlay"></div>
                 <div class="modal-content" style="max-width: 360px;">
                     <div class="modal-header">
-                        <h3 id="itemNoteModalTitle">Nota / Observación</h3>
+                        <h3 id="itemNoteModalTitle">Nota / ObservaciÃ³n</h3>
                         <button class="close-modal" id="closeItemNoteModal">&times;</button>
                     </div>
                     <div class="modal-body">
                         <p id="itemNoteModalProductName" style="font-size: 0.9rem; font-weight: 700; color: var(--accent-secondary); margin-bottom: 8px;"></p>
-                        <textarea id="itemNoteModalInput" placeholder="Ej: Sin azúcar, bien caliente, porción doble..." style="width: 100%; height: 75px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-default); background: var(--bg-input); color: white; font-family: inherit; resize: none;"></textarea>
+                        <textarea id="itemNoteModalInput" placeholder="Ej: Sin azÃºcar, bien caliente, porciÃ³n doble..." style="width: 100%; height: 75px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-default); background: var(--bg-input); color: white; font-family: inherit; resize: none;"></textarea>
                         <div id="itemNoteQuickTags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;"></div>
                     </div>
                     <div class="modal-footer">
@@ -1031,7 +1031,7 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <input type="text" id="clientInput" placeholder="Número de mesa o nombre" class="modal-input"
+                    <input type="text" id="clientInput" placeholder="NÃºmero de mesa o nombre" class="modal-input"
                         autofocus>
                 </div>
                 <div class="modal-footer">
@@ -1083,11 +1083,11 @@
                         style="width: 60px; height: 60px; background: rgba(245, 158, 11, 0.1); color: var(--status-pending); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-sm);">
                         <i data-lucide="lock" style="width: 30px; height: 30px;"></i>
                     </div>
-                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Ingresa la contraseña de administrador
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Ingresa la contraseÃ±a de administrador
                     </p>
                 </div>
                 <div class="form-group">
-                    <input type="password" id="adminPasswordInput" placeholder="Contraseña"
+                    <input type="password" id="adminPasswordInput" placeholder="ContraseÃ±a"
                         style="text-align: center; font-size: 1.2rem; letter-spacing: 4px;" autofocus>
                 </div>
                 <button class="btn-confirm" id="confirmAdminLogin" style="width: 100%; height: 48px; font-size: 1rem;">
@@ -1121,3 +1121,4 @@
 </body>
 
 </html>
+
