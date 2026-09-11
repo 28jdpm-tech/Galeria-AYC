@@ -384,13 +384,35 @@ document.addEventListener('DOMContentLoaded', () => {
         if (totalAmountFooter) totalAmountFooter.textContent = formatPrice(grandTotal);
     }
     // --- SPLIT UI LOGIC ---
+function renderPosClientTabs() {
+    const el = document.getElementById('posClientsTabs');
+    if (!el) return;
+    el.innerHTML = state.clients.map(client => '<button type="button" class="person-tab ' + (client === state.activeClient ? 'active' : '') + '" onclick="window.switchClient(''' + client + ''')">' + client + '</button>').join('');
+}
+window.switchClient = function(client) {
+    state.activeClient = client;
+    renderPosClientTabs();
+    renderSplitUI();
+};
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('btnAddClient');
+    if (btn) {
+        btn.addEventListener('click', () => {
+            const newClient = 'P' + (state.clients.length + 1);
+            state.clients.push(newClient);
+            window.switchClient(newClient);
+        });
+    }
+    renderPosClientTabs();
+});
     
-        function toggleProduct(product) {
+            function toggleProduct(product) {
         const clientId = state.activeClient;
         if (!clientId) return;
 
         const existingIndex = state.cart.findIndex(item => item.productId === product.id && item.clientName === clientId);
         
+        let isActiveNow = false;
         if (existingIndex !== -1) {
             state.cart.splice(existingIndex, 1);
         } else {
@@ -405,24 +427,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 categoryId: product.category,
                 notes: ''
             });
+            isActiveNow = true;
         }
-        renderSplitUI();
+        
+        // Optimistic UI update instead of full render
+        const cardEls = document.querySelectorAll(`.split-card[data-id="${product.id}"]`);
+        cardEls.forEach(el => {
+            if (isActiveNow) {
+                el.classList.add('active', 'drink-active');
+            } else {
+                el.classList.remove('active', 'drink-active');
+            }
+        });
+        
+        renderPosCart();
     }
 
-    function renderSplitUI() {
+    window.filterCategory = function(inputEl, catId) {
+    const term = inputEl.value.toLowerCase();
+    const content = document.getElementById('col-content-' + catId);
+    if (!content) return;
+    
+    const cards = content.querySelectorAll('.split-card');
+    cards.forEach(card => {
+        const name = card.getAttribute('data-name') || '';
+        if (name.includes(term)) {
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+};
+
+function renderSplitUI() {
     const container = document.getElementById('dynamicCategoriesContainer');
     if (!container) return;
 
     const config = StorageManager.getConfig();
     const products = getActiveProductsList(config);
     
-    const searchInput = document.getElementById('searchAll');
-    const searchVal = searchInput ? (searchInput.value || '').toLowerCase() : '';
-    
-    const filtered = products.filter(p => p.name.toLowerCase().includes(searchVal));
-    
     const groups = {};
-    filtered.forEach(p => {
+    products.forEach(p => {
         const catId = p.category || 'otros';
         if(!groups[catId]) groups[catId] = [];
         groups[catId].push(p);
@@ -430,43 +475,41 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let html = '';
     
+    const renderColumn = (catId, catName) => {
+        const items = groups[catId];
+        if (!items || items.length === 0) return '';
+        
+        let colHtml = `<div class="category-col" style="flex: 0 0 320px; display: flex; flex-direction: column; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-subtle); overflow: hidden; height: 100%;">
+            <div class="category-col-header" style="padding: 12px; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 10px;">
+                <h3 style="margin: 0; font-size: 1rem; color: var(--accent-primary); text-transform: uppercase;">${catName}</h3>
+                <div class="category-search-box" style="display: flex; align-items: center; background: white; border: 1px solid var(--border-subtle); border-radius: 6px; padding: 4px 8px;">
+                    <i data-lucide="search" style="width: 16px; height: 16px; color: var(--text-muted);"></i>
+                    <input type="text" placeholder="Buscar..." oninput="window.filterCategory(this, '${catId}')" style="border: none; outline: none; width: 100%; padding: 4px; font-size: 0.85rem; margin-left: 5px;">
+                </div>
+            </div>
+            <div class="category-col-content" id="col-content-${catId}" style="padding: 10px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1;">`;
+        
+        colHtml += items.map(p => {
+            const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
+            return `<div class="split-card ${isActive ? 'active drink-active' : ''}" data-id="${p.id}" data-name="${p.name.toLowerCase()}" onclick="window.triggerToggleProduct('${p.id}')">
+                   <span>${p.name}</span>
+                   <div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px"></i></div>
+                   </div>`;
+        }).join('');
+        
+        colHtml += `</div></div>`;
+        return colHtml;
+    };
+
     config.categories.forEach(cat => {
-        if (groups[cat.id] && groups[cat.id].length > 0) {
-            html += `<div class="category-block" style="margin-bottom: 5px;">
-                <h3 style="background: var(--bg-secondary); padding: 10px 12px; border-radius: 6px; color: var(--accent-primary); font-size: 1rem; margin: 0 0 10px 0; border-left: 4px solid var(--accent-primary); text-transform: uppercase;">
-                    ${cat.name}
-                </h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">`;
-            
-            html += groups[cat.id].map(p => {
-                const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
-                return `<div class="split-card ${isActive ? 'active drink-active' : ''}" data-id="${p.id}" onclick="window.triggerToggleProduct('${p.id}')">
-                       <span>${p.name}</span>
-                       <div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px"></i></div>
-                       </div>`;
-            }).join('');
-            html += '</div></div>';
+        if (groups[cat.id]) {
+            html += renderColumn(cat.id, cat.name);
             delete groups[cat.id];
         }
     });
     
     Object.keys(groups).forEach(catId => {
-        if(groups[catId].length > 0) {
-            html += `<div class="category-block" style="margin-bottom: 5px;">
-                <h3 style="background: var(--bg-secondary); padding: 10px 12px; border-radius: 6px; color: var(--accent-primary); font-size: 1rem; margin: 0 0 10px 0; border-left: 4px solid var(--accent-primary); text-transform: uppercase;">
-                    Otros
-                </h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">`;
-            
-            html += groups[catId].map(p => {
-                const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
-                return `<div class="split-card ${isActive ? 'active drink-active' : ''}" data-id="${p.id}" onclick="window.triggerToggleProduct('${p.id}')">
-                       <span>${p.name}</span>
-                       <div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px"></i></div>
-                       </div>`;
-            }).join('');
-            html += '</div></div>';
-        }
+        html += renderColumn(catId, 'Otros');
     });
     
     container.innerHTML = html;
@@ -474,14 +517,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPosCart();
 }
 
-
-    // Attach Search listeners
-    const searchAll = document.getElementById('searchAll');
-    if (searchAll) {
-        searchAll.addEventListener('input', () => {
-            renderSplitUI();
-        });
-    }
 
     // Expose Cart methods
     // Expose Cart methods to window for inline onclick handlers
@@ -3447,6 +3482,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
+
 
 
 
