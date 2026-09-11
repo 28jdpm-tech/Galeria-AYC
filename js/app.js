@@ -388,6 +388,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const config = StorageManager.getConfig();
         const cat = config.categories.find(c => c.id === catId);
         if (!cat) return false;
+        if (cat.type === 'bebida') return true;
+        if (cat.type === 'comida') return false;
         return cat.name.toLowerCase().includes('bebida');
     }
 
@@ -3102,7 +3104,12 @@ document.addEventListener('DOMContentLoaded', () => {
         let html = '';
         if (type === 'category') {
             const item = config.categories.find(c => c.id === id);
-            html = `<div class="form-group"><label>Nombre de CategorÃ­a</label><input type="text" id="editName" value="${item.name}"></div>`;
+            const itemType = (item && item.type) ? item.type : 'comida';
+            html = '<div class="form-group"><label>Nombre de Categoría</label><input type="text" id="editName" value="' + item.name + '"></div>' +
+       '<div class="form-group"><label>Tipo de Menú</label><select id="editType">' +
+       '<option value="comida" ' + (itemType === 'comida' ? 'selected' : '') + '>Comida (Derecha)</option>' +
+       '<option value="bebida" ' + (itemType === 'bebida' ? 'selected' : '') + '>Bebida (Izquierda)</option>' +
+       '</select></div>';
         } else if (type === 'flavor') {
             const allProds = getActiveProductsList(config);
             const item = allProds.find(p => p.id === id) || (config.flavors[parentId] && config.flavors[parentId].find(f => f.id === id)) || { name: '', price: 0 };
@@ -3160,14 +3167,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (type === 'category') {
+                const typeVal = document.getElementById('editType') ? document.getElementById('editType').value : 'comida';
                 if (id) {
                     const cat = config.categories.find(c => c.id === id);
                     if (cat) {
                         cat.name = name;
+                        cat.type = typeVal;
                     }
                 } else {
                     const newId = 'cat_' + Date.now();
-                    config.categories.push({ id: newId, name, active: true });
+                    config.categories.push({ id: newId, name, type: typeVal, active: true });
                     if (!config.flavors) config.flavors = {};
                     config.flavors[newId] = [];
                     if (!config.extras) config.extras = {};
@@ -3242,14 +3251,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elements.addCategoryBtn) {
         elements.addCategoryBtn.onclick = () => {
             adminEditContext = { type: 'category', id: null };
-            elements.adminModalTitle.textContent = 'Nueva CategorÃ­a';
-            elements.adminModalBody.innerHTML = `
-                <div class="form-group"><label>Nombre de CategorÃ­a</label><input type="text" id="editName" placeholder="Ej: Panes Especiales"></div>
-            `;
+            elements.adminModalTitle.textContent = 'Nueva Categoría';
+            elements.adminModalBody.innerHTML = '<div class="form-group"><label>Nombre de Categoría</label><input type="text" id="editName" placeholder="Ej: Panes Especiales"></div>' +
+                '<div class="form-group"><label>Tipo de Menú</label>' +
+                '<select id="editType"><option value="comida">Comida (Derecha)</option><option value="bebida">Bebida (Izquierda)</option></select></div>';
             elements.adminModal.classList.add('open');
         };
     }
-
+    
     if (elements.addFlavorBtn) {
         elements.addFlavorBtn.onclick = () => {
             const catId = elements.adminCategorySelectFlavors ? elements.adminCategorySelectFlavors.value : 'panaderia';
@@ -3507,6 +3516,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
