@@ -1095,7 +1095,19 @@ function forceLogin() {
     const configStr = localStorage.getItem('foodx_admin_password') || '1234';
     if (pwd === configStr) {
         document.getElementById('adminLoginModal').classList.remove('open');
-        alert('Acceso concedido. Intenta clickear el menú ahora.');
+        if (window.appState) {
+            window.appState.isAdminAuthenticated = true;
+            // Force click the pending page if set
+            if (window.appState.pendingAdminPage) {
+                const targetBtn = Array.from(document.querySelectorAll('.drawer-item')).find(i => i.dataset.page === window.appState.pendingAdminPage);
+                if (targetBtn) targetBtn.click();
+                window.appState.pendingAdminPage = null;
+            } else {
+                alert('Acceso concedido. Ya puedes navegar por el menú administrador.');
+            }
+        } else {
+            alert('Error: appState no encontrado.');
+        }
     } else {
         alert('Contraseña incorrecta');
     }
@@ -1106,6 +1118,7 @@ function forceCloseLogin() {
 </script></body>
 
 </html>
+
 
 
 
