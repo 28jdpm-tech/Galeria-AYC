@@ -3409,8 +3409,7 @@ function renderSplitUI() {
 
     if (elements.confirmAdminLogin) {
         const handleLogin = () => {
-            alert('Intentando login con: ' + elements.adminPasswordInput.value);
-            const config = StorageManager.getConfig();
+                        const config = StorageManager.getConfig();
             const input = elements.adminPasswordInput.value;
 
             if (input === config.adminPassword) {
@@ -3623,6 +3622,7 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
 
 
 
