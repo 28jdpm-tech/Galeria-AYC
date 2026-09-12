@@ -1,4 +1,4 @@
-/* ============================================
+﻿/* ============================================
    FoodX POS PRO - Inline Selection Interface
    ============================================ */
 
@@ -4086,7 +4086,7 @@ option {
 .pos-products-grid {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
 }
-/* NEW SPLIT LAYOUT (MOBILE FIRST COMANDA RÁPIDA) */
+/* NEW SPLIT LAYOUT (MOBILE FIRST COMANDA RÃPIDA) */
 .pos-workspace-split {
     display: flex;
     flex-direction: column;
@@ -4305,7 +4305,7 @@ option {
 
 .dynamic-card {
     background: white;
-    color: inherit;
+    color: #333;
     border: 1px solid #e2e8f0;
 }
 .dynamic-card.active {
@@ -4320,3 +4320,4 @@ option {
 .dynamic-card.active .split-card-check {
     display: flex;
 }
+
