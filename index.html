@@ -205,6 +205,10 @@
 
 
 
+                                                <div class="payment-total-row">
+                            <span>TOTAL A COBRAR:</span>
+                            <span class="payment-total" id="paymentTotal"></span>
+                        </div>
                         <div class="payment-methods-container" style="margin: var(--space-md) 0;">
                             <label
                                 style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem;">M&eacute;todo de Pago:</label>
@@ -280,15 +284,10 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="payment-total-row">
-                            <span>TOTAL A COBRAR:</span>
-                            <span class="payment-total" id="paymentTotal"></span>
-                        </div>
                         <div class="payment-actions">
-                            <button class="btn-cancel" id="cancelPayment">Volver</button>
-                            <button class="btn-delete-order" id="deleteOrderBtn" style="display: flex !important;">
-                                <i data-lucide="trash-2"></i>
-                                Eliminar Pedido
+                            <button class="btn-pay" id="confirmPayment">
+                                <i data-lucide="banknote"></i>
+                                Marcar como Pagado
                             </button>
                             <button class="btn-print-checkout" id="printPaymentTicket">
                                 <i data-lucide="printer"></i>
@@ -298,9 +297,10 @@
                                 <i data-lucide="receipt"></i>
                                 Factura
                             </button>
-                            <button class="btn-pay" id="confirmPayment">
-                                <i data-lucide="banknote"></i>
-                                Marcar como Pagado
+                            <button class="btn-cancel" id="cancelPayment">Volver</button>
+                            <button class="btn-delete-order" id="deleteOrderBtn" style="display: flex !important;">
+                                <i data-lucide="trash-2"></i>
+                                Eliminar Pedido
                             </button>
                         </div>
                     </div>
@@ -1012,6 +1012,10 @@ function forceCloseLogin() {
 </script></body>
 
 </html>
+
+
+
+
 
 
 
