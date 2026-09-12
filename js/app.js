@@ -3694,3 +3694,44 @@ function renderSplitUI() {
 
 
 
+
+    // ============================================
+        // ============================================
+    // System Data Management
+    // ============================================
+    window.clearSystemData = async function() {
+        const msg1 = "ADVERTENCIA CRITICA \n\nEstas seguro de querer BORRAR TODO el historial de pedidos y gastos?\n\n- Esta accion es irreversible.\n- Tu catalogo (productos, categorias) NO se borrara.\n- Tu contador de pedidos volvera a cero.";
+        if (!confirm(msg1)) return;
+        
+        const confirmWord = prompt("Escribe BORRAR en mayusculas para confirmar la eliminacion:");
+        if (confirmWord !== "BORRAR") {
+            showNotification("Eliminacion cancelada.", "error");
+            return;
+        }
+
+        try {
+            const orders = StorageManager.getOrders();
+            for (let o of orders) {
+                StorageManager.deleteOrderFromCloud(o.id);
+            }
+            
+            const expenses = StorageManager.getExpenses();
+            if (typeof db !== 'undefined') {
+                for (let e of expenses) {
+                    try { await db.collection(STORAGE_KEYS.EXPENSES).doc(e.id).delete(); } catch(err) {}
+                }
+            }
+
+            localStorage.removeItem(STORAGE_KEYS.ORDERS);
+            localStorage.removeItem(STORAGE_KEYS.EXPENSES);
+            localStorage.setItem('galeria_order_counter', '0');
+
+            showNotification("Todo el historial ha sido borrado.");
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } catch(error) {
+            console.error(error);
+            showNotification("Error al limpiar historial", "error");
+        }
+    };
