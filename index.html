@@ -90,12 +90,12 @@
             <!-- New Order Page (Multi-Sector POS) -->
             <div class="page active" id="page-new-order">
                                                 <div class="pos-workspace pos-workspace-split" id="posWorkspace">
-                    <!-- Top Header: Location & People -->
-                    <div class="pos-split-header">
-                        <div class="pos-location-select">
-                                                        <input type="text" id="posLocationInput" placeholder="Mesa..." style="padding: 8px 12px; border: 1px solid var(--border-subtle); border-radius: 8px; font-weight: bold; width: 110px; color: #333; background: white; outline: none; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
+                                        <!-- Top Header: Location & People -->
+                    <div class="pos-split-header" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                        <div class="pos-location-select" style="width: 100%;">
+                            <input type="text" id="posLocationInput" placeholder="Mesa o Nombre del Cliente..." style="padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: 8px; font-weight: bold; width: 100%; box-sizing: border-box; color: #333; background: white; outline: none; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); font-size: 0.95rem;">
                         </div>
-                        <div class="pos-people-tabs">
+                        <div class="pos-people-tabs" style="width: 100%;">
                             <button type="button" class="btn-add-person" id="btnAddClient">
                                 <i data-lucide="plus"></i>
                             </button>
@@ -1079,6 +1079,7 @@ function forceCloseLogin() {
 </script></body>
 
 </html>
+
 
 
 
