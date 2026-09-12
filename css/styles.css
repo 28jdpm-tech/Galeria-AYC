@@ -4331,3 +4331,9 @@ option {
         height: 16px !important;
     }
 }
+
+/* Make Imprimir and Factura buttons on checkout be side-by-side */
+.btn-print-checkout, .btn-invoice {
+    flex: 1 !important;
+    width: auto !important;
+}
