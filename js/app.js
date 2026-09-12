@@ -2378,13 +2378,12 @@ function renderSplitUI() {
         const clientKeys = Object.keys(itemsByClient);
         let grandTotal = 0;
 
+        let firstClient = true;
         for (const [clientName, cItems] of Object.entries(itemsByClient)) {
-            if (clientKeys.length > 1) {
+            if (!firstClient && clientKeys.length > 1) {
                 t += '\n';
-                t += center('[ ' + clientName.toUpperCase() + ' ]') + '\n';
-                t += line + '\n';
             }
-
+            firstClient = false;
             let clientSubtotal = 0;
             cItems.forEach(item => {
                 const qty = item.qty || 1;
@@ -2489,13 +2488,12 @@ function renderSplitUI() {
         const clientKeys = Object.keys(itemsByClient);
         let grandTotal = 0;
 
+        let firstClient = true;
         for (const [clientName, cItems] of Object.entries(itemsByClient)) {
-            if (clientKeys.length > 1) {
+            if (!firstClient && clientKeys.length > 1) {
                 t += '\n';
-                t += center('[ ' + clientName.toUpperCase() + ' ]') + '\n';
-                t += line + '\n';
             }
-
+            firstClient = false;
             let clientSubtotal = 0;
             cItems.forEach(item => {
                 const qty = item.qty || 1;
@@ -3611,6 +3609,7 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
 
 
 
