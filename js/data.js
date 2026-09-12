@@ -7,13 +7,7 @@ const FOODX_DATA = {
     businessSubtitle: 'SISTEMA POS PRO',
 
     // Multi-sector Categories
-    categories: [
-        { id: 'panaderia', name: 'PanaderÃ­a', active: true },
-        { id: 'reposteria', name: 'ReposterÃ­a', active: true },
-        { id: 'cafeteria', name: 'CafeterÃ­a', active: true },
-        { id: 'bebidas', name: 'Bebidas', active: true },
-        { id: 'desayunos', name: 'Desayunos & Platos', active: true }
-    ],
+    categories: [],
 
     // Products by unit
     products: [],
@@ -143,4 +137,5 @@ function generateOrderNumber() {
     // Return the async result, but for backward compatibility also have sync fallback
     return getNextOrderNumber();
 }
+
 
