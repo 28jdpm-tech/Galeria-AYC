@@ -585,7 +585,6 @@ function renderSplitUI() {
         delete groups[cat.id];
     });
     
-    // Render anything left without a valid category
     const remaining = Object.keys(groups);
     if (remaining.length > 0) {
         html += renderColumn('otros', 'Otros');
@@ -594,6 +593,110 @@ function renderSplitUI() {
     container.innerHTML = html;
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
+
+
+    // Expose Cart methods
+    // Expose Cart methods to window for inline onclick handlers
+        function clearPosCart(confirmClear = false) {
+        if (confirmClear && !confirm('¿Estás seguro de vaciar todo el pedido actual?')) return;
+        state.cart = [];
+        state.orderTotal = 0;
+        renderSplitUI();
+    }
+    // Remove the invalid window assignments that throw ReferenceError
+
+    // Item Note Modal Logic
+    window.openItemNoteModal = function (cartItemId) {
+        const item = state.cart.find(i => i.id === cartItemId);
+        if (!item) return;
+        state.editingNoteItemId = cartItemId;
+
+        const modal = elements.itemNoteModal || document.getElementById('itemNoteModal');
+        const prodNameEl = document.getElementById('itemNoteModalProductName');
+        const inputEl = document.getElementById('itemNoteModalInput');
+        const tagsContainer = document.getElementById('itemNoteQuickTags');
+
+        if (prodNameEl) prodNameEl.textContent = `${item.qty}x ${item.name}`;
+        if (inputEl) inputEl.value = item.notes || '';
+
+        if (tagsContainer) {
+            const config = StorageManager.getConfig();
+            const obs = (config.observations && config.observations[item.category]) || [];
+            tagsContainer.innerHTML = obs.map(o => `
+                <span class="quick-obs-chip" onclick="window.appendQuickTag('${o.name}')">${o.name}</span>
+            `).join('');
+        }
+
+        if (modal) modal.classList.add('open');
+        if (inputEl) inputEl.focus();
+    };
+
+    window.appendQuickTag = function (tagName) {
+        const inputEl = document.getElementById('itemNoteModalInput');
+        if (!inputEl) return;
+        if (inputEl.value.trim() === '') {
+            inputEl.value = tagName;
+        } else {
+            inputEl.value += ', ' + tagName;
+        }
+    };
+
+    function saveItemNoteModal() {
+        if (!state.editingNoteItemId) return;
+        const item = state.cart.find(i => i.id === state.editingNoteItemId);
+        const inputEl = document.getElementById('itemNoteModalInput');
+        if (item && inputEl) {
+            item.notes = inputEl.value.trim();
+        }
+        const modal = elements.itemNoteModal || document.getElementById('itemNoteModal');
+        if (modal) modal.classList.remove('open');
+        state.editingNoteItemId = null;
+        renderPosCart();
+    }
+
+    function closeItemNoteModalFunc() {
+        const modal = elements.itemNoteModal || document.getElementById('itemNoteModal');
+        if (modal) modal.classList.remove('open');
+        state.editingNoteItemId = null;
+    }
+
+    if (elements.closeItemNoteModal) elements.closeItemNoteModal.addEventListener('click', closeItemNoteModalFunc);
+    if (elements.closeItemNoteOverlay) elements.closeItemNoteOverlay.addEventListener('click', closeItemNoteModalFunc);
+    if (elements.cancelItemNoteModal) elements.cancelItemNoteModal.addEventListener('click', closeItemNoteModalFunc);
+    if (elements.saveItemNoteModal) elements.saveItemNoteModal.addEventListener('click', saveItemNoteModal);
+
+    // Wire Clear Cart Button
+    if (elements.posClearCartBtn) {
+        elements.posClearCartBtn.addEventListener('click', () => clearPosCart(true));
+    }
+
+    // Submit Order (Send to Kitchen & Create Ticket)
+    let pendingOrder = null;
+
+    async function submitOrder() {
+        if (state.cart.length === 0) {
+            showNotification('âš ï¸ Agrega productos al pedido antes de enviar', 'error');
+            return;
+        }
+
+        const locationInput = document.getElementById('posLocationInput');
+        const locationText = locationInput ? locationInput.value.trim().toUpperCase() : '';
+        const customerText = state.clients.join(' - ').trim().toUpperCase();
+
+        if (!state.serviceType) state.serviceType = 'salon';
+
+        if (!state.appendingOrderId && state.clients.length === 0 && !locationText) {
+            showNotification('âš ï¸ Ingresa al menos un cliente en la orden', 'error');
+            return;
+        }
+
+        const submitBtn = elements.posSubmitOrderBtn || elements.sendToKitchenBtn || document.getElementById('posSubmitOrderBtn');
+        const origText = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Generando...';
+            submitBtn.disabled = true;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
 
         try {
             const config = StorageManager.getConfig();
@@ -3520,7 +3623,6 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
-
 
 
 
