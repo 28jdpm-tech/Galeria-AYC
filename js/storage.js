@@ -30,9 +30,9 @@ const StorageManager = {
     },
 
     async deleteOrder(orderId) {
-        let orders = this.getOrders();
-        orders = orders.filter(o => o.id !== orderId);
+        const orders = this.getOrders().filter(o => o.id !== orderId);
         this.saveOrders(orders);
+        this.deleteOrderFromCloud(orderId);
     },
 
     // Get orders by status
@@ -188,21 +188,137 @@ const StorageManager = {
         return this.getOrdersByMonth(monthStr).filter(o => o.paid && !o.isPartial).reduce((sum, o) => sum + (o.totalPrice || 0), 0);
     },
 
-    // --- Firebase Sync Methods ---
+        // --- Firebase Sync Methods ---
 
-    // Sync order to Cloud (Disabled for 100% local mode)
     async syncOrderToCloud(order) {
-        // No-op
+        if (typeof db === 'undefined') return;
+        try {
+            await db.collection(STORAGE_KEYS.ORDERS).doc(order.id).set(order, { merge: true });
+        } catch (e) {
+            console.error('Error syncing order:', e);
+        }
     },
 
-    // Sync config to Cloud (Disabled for 100% local mode)
+    async deleteOrderFromCloud(orderId) {
+        if (typeof db === 'undefined') return;
+        try {
+            await db.collection(STORAGE_KEYS.ORDERS).doc(orderId).delete();
+        } catch (e) {
+            console.error('Error deleting order:', e);
+        }
+    },
+
     async syncConfigToCloud(config) {
-        // No-op
+        if (typeof db === 'undefined') return;
+        try {
+            await db.collection(STORAGE_KEYS.SETTINGS).doc('global_config').set(config, { merge: true });
+        } catch (e) {
+            console.error('Error syncing config:', e);
+        }
     },
 
-    // Listen for Cloud changes (Disabled for 100% local mode)
+    async syncExpenseToCloud(expense) {
+        if (typeof db === 'undefined') return;
+        try {
+            await db.collection(STORAGE_KEYS.EXPENSES).doc(expense.id).set(expense, { merge: true });
+        } catch (e) {
+            console.error('Error syncing expense:', e);
+        }
+    },
+    
+    async deleteExpenseFromCloud(expenseId) {
+        if (typeof db === 'undefined') return;
+        try {
+            await db.collection(STORAGE_KEYS.EXPENSES).doc(expenseId).delete();
+        } catch (e) {
+            console.error('Error deleting expense:', e);
+        }
+    },
+
     initCloudSync(callback, configCallback, printCallback) {
-        // No-op
+        if (typeof db === 'undefined') {
+            console.warn('Firebase db no detectado. Modo 100% offline.');
+            return;
+        }
+
+        // 1. Escuchar Configuración Global
+        db.collection(STORAGE_KEYS.SETTINGS).doc('global_config').onSnapshot(doc => {
+            if (doc.exists) {
+                const data = doc.data();
+                if (data.categories) localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(data.categories));
+                if (data.products) localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(data.products));
+                if (data.flavors) localStorage.setItem(STORAGE_KEYS.FLAVORS, JSON.stringify(data.flavors));
+                if (data.extras) localStorage.setItem(STORAGE_KEYS.EXTRAS, JSON.stringify(data.extras));
+                if (data.observations) localStorage.setItem('galeria_observations', JSON.stringify(data.observations));
+                if (data.prices) localStorage.setItem(STORAGE_KEYS.PRICES, JSON.stringify(data.prices));
+                if (data.adminPassword) localStorage.setItem('galeria_admin_password', data.adminPassword);
+
+                Object.assign(FOODX_DATA, data);
+                if (typeof configCallback === 'function') configCallback();
+            }
+        });
+
+        // 2. Escuchar Pedidos (Para no descargar todo el historial, escuchamos los recientes)
+        // Usamos una fecha un poco anterior para asegurar el día completo.
+        const today = new Date();
+        today.setDate(today.getDate() - 1);
+        const dateStr = today.toISOString().split('T')[0];
+
+        db.collection(STORAGE_KEYS.ORDERS)
+            .where('createdAt', '>=', dateStr)
+            .onSnapshot(snapshot => {
+                let localOrders = this.getOrders();
+                let changed = false;
+                
+                snapshot.docChanges().forEach(change => {
+                    const order = change.doc.data();
+                    if (change.type === 'added' || change.type === 'modified') {
+                        const idx = localOrders.findIndex(o => o.id === order.id);
+                        if (idx !== -1) {
+                            localOrders[idx] = order;
+                            changed = true;
+                        } else {
+                            localOrders.push(order);
+                            changed = true;
+                        }
+                    } else if (change.type === 'removed') {
+                        localOrders = localOrders.filter(o => o.id !== order.id);
+                        changed = true;
+                    }
+                });
+
+                if (changed) {
+                    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(localOrders));
+                    if (typeof callback === 'function') callback();
+                }
+            });
+
+        // 3. Escuchar Egresos
+        db.collection(STORAGE_KEYS.EXPENSES)
+            .where('createdAt', '>=', dateStr)
+            .onSnapshot(snapshot => {
+                let local = this.getExpenses();
+                let changed = false;
+                snapshot.docChanges().forEach(change => {
+                    const item = change.doc.data();
+                    if (change.type === 'added' || change.type === 'modified') {
+                        const idx = local.findIndex(o => o.id === item.id);
+                        if (idx !== -1) {
+                            local[idx] = item;
+                        } else {
+                            local.push(item);
+                        }
+                        changed = true;
+                    } else if (change.type === 'removed') {
+                        local = local.filter(o => o.id !== item.id);
+                        changed = true;
+                    }
+                });
+                if (changed) {
+                    localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(local));
+                    if (typeof callback === 'function') callback();
+                }
+            });
     },
 
     // --- Original methods with cloud hooks ---
@@ -232,6 +348,7 @@ const StorageManager = {
     async deleteOrder(orderId) {
         const orders = this.getOrders().filter(o => o.id !== orderId);
         this.saveOrders(orders);
+        this.deleteOrderFromCloud(orderId);
     },
 
     // ============================================
@@ -277,17 +394,17 @@ const StorageManager = {
         const expenses = this.getExpenses();
         expenses.push(expense);
         this.saveExpenses(expenses);
+        this.syncExpenseToCloud(expense);
         return expense;
     },
 
     async deleteExpense(expenseId) {
         const expenses = this.getExpenses().filter(e => e.id !== expenseId);
         this.saveExpenses(expenses);
+        this.deleteExpenseFromCloud(expenseId);
     },
 
-    async syncExpenseToCloud(expense) {
-        // No-op
-    },
+    
 
     getTodayExpenses() {
         const today = new Date().toDateString();
@@ -330,6 +447,8 @@ StorageManager.configLoaded = false;
     StorageManager.configLoaded = true;
     window.dispatchEvent(new CustomEvent('configLoadedFromCloud')); // Kept name for compatibility
 })();
+
+
 
 
 

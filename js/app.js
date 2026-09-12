@@ -491,9 +491,8 @@ function renderSplitUI() {
     ];
     let colorIndex = 0;
     
-    const renderColumn = (catId, catName) => {
-        const items = groups[catId];
-        if (!items || items.length === 0) return '';
+        const renderColumn = (catId, catName) => {
+        const items = groups[catId] || [];
         
         const colors = palette[colorIndex % palette.length];
         colorIndex++;
@@ -508,30 +507,32 @@ function renderSplitUI() {
             </div>
             <div class="category-col-content" id="col-content-${catId}" style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; padding-bottom: 20px; padding-right: 4px;">`;
         
-        colHtml += items.map(p => {
-            const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
-            
-            return `<div class="split-card dynamic-card ${isActive ? 'active' : ''}" data-id="${p.id}" data-name="${p.name.toLowerCase()}" onclick="window.triggerToggleProduct('${p.id}')">
-                   <span>${p.name}</span>
-                   
-                   </div>`;
-        }).join('');
+        if (items.length === 0) {
+            colHtml += `<div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 0.85rem;">No hay productos</div>`;
+        } else {
+            colHtml += items.map(p => {
+                const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
+                return `<div class="split-card dynamic-card ${isActive ? 'active' : ''}" data-id="${p.id}" data-name="${p.name.toLowerCase()}" onclick="window.triggerToggleProduct('${p.id}')">
+                       <span>${p.name}</span>
+                       
+                       </div>`;
+            }).join('');
+        }
         
         colHtml += `</div></div>`;
         return colHtml;
     };
 
     config.categories.forEach(cat => {
-        if (groups[cat.id]) {
-            html += renderColumn(cat.id, cat.name);
-            delete groups[cat.id];
-        }
+        html += renderColumn(cat.id, cat.name);
+        delete groups[cat.id];
     });
     
     Object.keys(groups).forEach(catId => {
-        html += renderColumn(catId, 'Otros');
+        if(groups[catId] && groups[catId].length > 0) {
+            html += renderColumn(catId, 'Otros');
+        }
     });
-    
     container.innerHTML = html;
     if (typeof lucide !== 'undefined') lucide.createIcons();
     renderPosCart();
@@ -3502,6 +3503,7 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
 
 
 
