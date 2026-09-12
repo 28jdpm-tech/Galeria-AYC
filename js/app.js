@@ -3433,7 +3433,7 @@ function renderSplitUI() {
                     state.pendingAdminPage = null;
                 }
             } else {
-                showNotification('ContraseÃ±a incorrecta', 'error');
+                showNotification('Contrase\u00f1a incorrecta', 'error');
                 elements.adminPasswordInput.value = '';
                 elements.adminPasswordInput.focus();
             }
@@ -3735,3 +3735,5 @@ function renderSplitUI() {
             showNotification("Error al limpiar historial", "error");
         }
     };
+
+
