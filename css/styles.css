@@ -4337,3 +4337,25 @@ option {
     flex: 1 !important;
     width: auto !important;
 }
+
+/* Force exact rows for payment action buttons */
+.payment-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.payment-actions > .btn-cancel,
+.payment-actions > .btn-delete-order,
+.payment-actions > .btn-print-checkout,
+.payment-actions > .btn-invoice {
+    flex: 1 1 calc(50% - 6px) !important;
+    min-width: calc(50% - 10px) !important;
+    max-width: calc(50% - 4px) !important;
+    margin: 0 !important;
+}
+.payment-actions > .btn-pay {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+}
