@@ -4091,7 +4091,7 @@ option {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: #1e1e1e;
+    background: var(--bg-primary);
     color: white;
     font-family: 'Inter', sans-serif;
     padding: 0;
@@ -4315,5 +4315,6 @@ option {
     border-color: var(--active-check);
     order: -1;
 }
+
 
 
