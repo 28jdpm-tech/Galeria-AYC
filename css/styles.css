@@ -4307,17 +4307,13 @@ option {
     background: white;
     color: #333;
     border: 1px solid #e2e8f0;
+    order: 0;
 }
 .dynamic-card.active {
-    background: var(--active-bg);
-    color: var(--active-text);
-    border-color: var(--active-border);
-}
-.dynamic-card .split-card-check {
-    display: none;
     background: var(--active-check);
+    color: white;
+    border-color: var(--active-check);
+    order: -1;
 }
-.dynamic-card.active .split-card-check {
-    display: flex;
-}
+
 

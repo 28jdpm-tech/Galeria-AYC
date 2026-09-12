@@ -513,7 +513,7 @@ function renderSplitUI() {
             
             return `<div class="split-card dynamic-card ${isActive ? 'active' : ''}" data-id="${p.id}" data-name="${p.name.toLowerCase()}" onclick="window.triggerToggleProduct('${p.id}')">
                    <span>${p.name}</span>
-                   <div class="split-card-check"><i data-lucide="check" style="width:14px; height:14px; color: white;"></i></div>
+                   
                    </div>`;
         }).join('');
         
@@ -3502,6 +3502,7 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
 
 
 
