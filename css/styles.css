@@ -4378,3 +4378,12 @@ option {
     color: var(--accent-gold, #fbbf24) !important;
     text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
+
+/* Make the ticket preview more legible / less opaque */
+.ticket-content, #paymentTicketContent {
+    color: #000 !important;
+    font-weight: 700 !important;
+    background: #fff !important;
+    border: 1px solid #d1d5db !important;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05) !important;
+}
