@@ -777,14 +777,7 @@ function renderSplitUI() {
 
                 StorageManager.addOrder(newOrder);
                 showNotification('Pedido ' + newOrder.orderNumber + ' generado');
-                state.currentPage = 'checkout';
-                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-                const chkPage = document.getElementById('page-checkout');
-                if (chkPage) chkPage.classList.add('active');
-                elements.drawerItems.forEach(i => i.classList.remove('active'));
-                const chkTab = Array.from(elements.drawerItems).find(i => i.dataset.page === 'checkout');
-                if (chkTab) chkTab.classList.add('active');
-                renderCheckoutPage();
+                
             }
 
             clearPosCart(false);
@@ -3735,5 +3728,7 @@ function renderSplitUI() {
             showNotification("Error al limpiar historial", "error");
         }
     };
+
+
 
 
