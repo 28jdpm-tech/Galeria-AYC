@@ -553,7 +553,7 @@ function renderSplitUI() {
             
             <div style="display: flex; align-items: center; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 6px 12px; min-height: 40px; position: relative;">
                 <i data-lucide="search" style="width: 16px; height: 16px; color: #94a3b8;"></i>
-                <input type="text" id="search-input-${catId}" placeholder="Buscar ${nameLower}..." oninput="window.filterCategory(this, '${catId}')" style="border: none; outline: none; width: 100%; padding: 4px; font-size: 0.85rem; margin-left: 8px; padding-right: 24px; background: transparent; color: var(--text-primary);">
+                <input type="text" id="search-input-${catId}" placeholder="Buscar..." oninput="window.filterCategory(this, '${catId}')" style="border: none; outline: none; width: 100%; padding: 4px; font-size: 0.85rem; margin-left: 8px; padding-right: 24px; background: transparent; color: var(--text-primary);">
                 <div id="clear-search-${catId}" onclick="window.clearCategorySearch('${catId}')" style="display: none; position: absolute; right: 8px; cursor: pointer; padding: 4px; border-radius: 50%; background: rgba(0,0,0,0.1); align-items: center; justify-content: center;">
                     <i data-lucide="x" style="width: 14px; height: 14px; color: var(--text-primary);"></i>
                 </div>
@@ -3625,6 +3625,7 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
 
 
 
