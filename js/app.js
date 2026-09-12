@@ -522,42 +522,57 @@ function renderSplitUI() {
     let html = '';
     
     const palette = [
-        { bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe', check: '#3b82f6' },
-        { bg: '#fff7ed', text: '#9a3412', border: '#fed7aa', check: '#f59e0b' },
-        { bg: '#f0fdf4', text: '#166534', border: '#bbf7d0', check: '#22c55e' },
-        { bg: '#fdf4ff', text: '#86198f', border: '#fbcfe8', check: '#d946ef' },
-        { bg: '#f8fafc', text: '#334155', border: '#e2e8f0', check: '#64748b' }
+        { main: '#2563eb', border: '#1e3a8a', bg: 'rgba(37,99,235,0.08)' },   // Blue
+        { main: '#ea580c', border: '#7c2d12', bg: 'rgba(234,88,12,0.08)' },   // Orange
+        { main: '#16a34a', border: '#14532d', bg: 'rgba(22,163,74,0.08)' },   // Green
+        { main: '#9333ea', border: '#581c87', bg: 'rgba(147,51,234,0.08)' },  // Purple
+        { main: '#eab308', border: '#713f12', bg: 'rgba(234,179,8,0.08)' }    // Yellow
     ];
     let colorIndex = 0;
     
-        const renderColumn = (catId, catName) => {
+    const renderColumn = (catId, catName) => {
         const items = groups[catId] || [];
         
         const colors = palette[colorIndex % palette.length];
         colorIndex++;
         
-        let colHtml = `<div class="category-col" style="flex: 1; min-width: 15ch; max-width: 18ch; display: flex; flex-direction: column; gap: 10px; height: 100%; --active-bg: ${colors.bg}; --active-text: ${colors.text}; --active-border: ${colors.border}; --active-check: ${colors.check};">
-            <div style="background: ${colors.bg}; border: 1px solid ${colors.border}; border-radius: 8px; padding: 12px; text-align: center; font-weight: 800; color: ${colors.text}; text-transform: uppercase; font-size: 0.9rem;">
-                ${catName}
+        let catIcon = '';
+        const nameLower = catName.toLowerCase();
+        if (nameLower.includes('bebida')) catIcon = '🍹';
+        else if (nameLower.includes('comida') || nameLower.includes('plato')) catIcon = '🍔';
+        else if (nameLower.includes('postre')) catIcon = '🍰';
+        else catIcon = '📌';
+
+        let colHtml = `<div class="category-col" style="flex: 1; min-width: 17ch; max-width: 22ch; display: flex; flex-direction: column; gap: 12px; height: 100%; 
+            background: ${colors.bg}; border: 1px solid ${colors.border}; border-radius: 16px; padding: 10px;
+            --active-check: ${colors.main}; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            
+            <div style="background: ${colors.main}; border-radius: 10px; padding: 12px; text-align: center; font-weight: 800; color: white; text-transform: uppercase; font-size: 0.9rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);">
+                ${catIcon} ${catName}
             </div>
-                        <div style="display: flex; align-items: center; background: white; border: 1px solid var(--border-subtle); border-radius: 8px; padding: 6px 12px; min-height: 40px; position: relative;">
+            
+            <div style="display: flex; align-items: center; background: rgba(0,0,0,0.4); border-radius: 8px; padding: 6px 12px; min-height: 40px; position: relative;">
                 <i data-lucide="search" style="width: 16px; height: 16px; color: #94a3b8;"></i>
-                <input type="text" id="search-input-${catId}" placeholder="Buscar..." oninput="window.filterCategory(this, '${catId}')" style="border: none; outline: none; width: 100%; padding: 4px; font-size: 0.85rem; margin-left: 8px; padding-right: 24px;">
-                <div id="clear-search-${catId}" onclick="window.clearCategorySearch('${catId}')" style="display: none; position: absolute; right: 8px; cursor: pointer; padding: 4px; border-radius: 50%; background: #f1f5f9; align-items: center; justify-content: center;">
-                    <i data-lucide="x" style="width: 14px; height: 14px; color: #64748b;"></i>
+                <input type="text" id="search-input-${catId}" placeholder="Buscar ${nameLower}..." oninput="window.filterCategory(this, '${catId}')" style="border: none; outline: none; width: 100%; padding: 4px; font-size: 0.85rem; margin-left: 8px; padding-right: 24px; background: transparent; color: white;">
+                <div id="clear-search-${catId}" onclick="window.clearCategorySearch('${catId}')" style="display: none; position: absolute; right: 8px; cursor: pointer; padding: 4px; border-radius: 50%; background: rgba(255,255,255,0.1); align-items: center; justify-content: center;">
+                    <i data-lucide="x" style="width: 14px; height: 14px; color: white;"></i>
                 </div>
             </div>
-            <div class="category-col-content" id="col-content-${catId}" style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; padding-bottom: 20px; padding-right: 4px;">`;
+            
+            <div class="category-col-content" id="col-content-${catId}" style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; padding-bottom: 20px; padding-right: 4px; scrollbar-width: none;">`;
         
         if (items.length === 0) {
             colHtml += `<div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 0.85rem;">No hay productos</div>`;
         } else {
             colHtml += items.map(p => {
                 const isActive = state.cart.some(item => item.productId === p.id && item.clientName === state.activeClient);
-                return `<div class="split-card dynamic-card ${isActive ? 'active' : ''}" data-id="${p.id}" data-name="${p.name.toLowerCase()}" onclick="window.triggerToggleProduct('${p.id}')">
+                return `<div class="split-card dynamic-card ${isActive ? 'active' : ''}" data-id="${p.id}" data-name="${p.name.toLowerCase()}" onclick="window.triggerToggleProduct('${p.id}')"
+                    style="border: none; border-radius: 10px; padding: 12px; font-size: 0.95rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
                        <span>${p.name}</span>
-                       
-                       </div>`;
+                       <div class="check-icon" style="display: ${isActive ? 'flex' : 'none'}; width: 22px; height: 22px; border-radius: 50%; background: white; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+                           <i data-lucide="check" style="width: 16px; height: 16px; color: ${colors.main};"></i>
+                       </div>
+                    </div>`;
             }).join('');
         }
         
@@ -570,119 +585,15 @@ function renderSplitUI() {
         delete groups[cat.id];
     });
     
-    Object.keys(groups).forEach(catId => {
-        if(groups[catId] && groups[catId].length > 0) {
-            html += renderColumn(catId, 'Otros');
-        }
-    });
+    // Render anything left without a valid category
+    const remaining = Object.keys(groups);
+    if (remaining.length > 0) {
+        html += renderColumn('otros', 'Otros');
+    }
+
     container.innerHTML = html;
     if (typeof lucide !== 'undefined') lucide.createIcons();
-    renderPosCart();
 }
-
-
-    // Expose Cart methods
-    // Expose Cart methods to window for inline onclick handlers
-        function clearPosCart(confirmClear = false) {
-        if (confirmClear && !confirm('¿Estás seguro de vaciar todo el pedido actual?')) return;
-        state.cart = [];
-        state.orderTotal = 0;
-        renderSplitUI();
-    }
-    // Remove the invalid window assignments that throw ReferenceError
-
-    // Item Note Modal Logic
-    window.openItemNoteModal = function (cartItemId) {
-        const item = state.cart.find(i => i.id === cartItemId);
-        if (!item) return;
-        state.editingNoteItemId = cartItemId;
-
-        const modal = elements.itemNoteModal || document.getElementById('itemNoteModal');
-        const prodNameEl = document.getElementById('itemNoteModalProductName');
-        const inputEl = document.getElementById('itemNoteModalInput');
-        const tagsContainer = document.getElementById('itemNoteQuickTags');
-
-        if (prodNameEl) prodNameEl.textContent = `${item.qty}x ${item.name}`;
-        if (inputEl) inputEl.value = item.notes || '';
-
-        if (tagsContainer) {
-            const config = StorageManager.getConfig();
-            const obs = (config.observations && config.observations[item.category]) || [];
-            tagsContainer.innerHTML = obs.map(o => `
-                <span class="quick-obs-chip" onclick="window.appendQuickTag('${o.name}')">${o.name}</span>
-            `).join('');
-        }
-
-        if (modal) modal.classList.add('open');
-        if (inputEl) inputEl.focus();
-    };
-
-    window.appendQuickTag = function (tagName) {
-        const inputEl = document.getElementById('itemNoteModalInput');
-        if (!inputEl) return;
-        if (inputEl.value.trim() === '') {
-            inputEl.value = tagName;
-        } else {
-            inputEl.value += ', ' + tagName;
-        }
-    };
-
-    function saveItemNoteModal() {
-        if (!state.editingNoteItemId) return;
-        const item = state.cart.find(i => i.id === state.editingNoteItemId);
-        const inputEl = document.getElementById('itemNoteModalInput');
-        if (item && inputEl) {
-            item.notes = inputEl.value.trim();
-        }
-        const modal = elements.itemNoteModal || document.getElementById('itemNoteModal');
-        if (modal) modal.classList.remove('open');
-        state.editingNoteItemId = null;
-        renderPosCart();
-    }
-
-    function closeItemNoteModalFunc() {
-        const modal = elements.itemNoteModal || document.getElementById('itemNoteModal');
-        if (modal) modal.classList.remove('open');
-        state.editingNoteItemId = null;
-    }
-
-    if (elements.closeItemNoteModal) elements.closeItemNoteModal.addEventListener('click', closeItemNoteModalFunc);
-    if (elements.closeItemNoteOverlay) elements.closeItemNoteOverlay.addEventListener('click', closeItemNoteModalFunc);
-    if (elements.cancelItemNoteModal) elements.cancelItemNoteModal.addEventListener('click', closeItemNoteModalFunc);
-    if (elements.saveItemNoteModal) elements.saveItemNoteModal.addEventListener('click', saveItemNoteModal);
-
-    // Wire Clear Cart Button
-    if (elements.posClearCartBtn) {
-        elements.posClearCartBtn.addEventListener('click', () => clearPosCart(true));
-    }
-
-    // Submit Order (Send to Kitchen & Create Ticket)
-    let pendingOrder = null;
-
-    async function submitOrder() {
-        if (state.cart.length === 0) {
-            showNotification('âš ï¸ Agrega productos al pedido antes de enviar', 'error');
-            return;
-        }
-
-        const locationInput = document.getElementById('posLocationInput');
-        const locationText = locationInput ? locationInput.value.trim().toUpperCase() : '';
-        const customerText = state.clients.join(' - ').trim().toUpperCase();
-
-        if (!state.serviceType) state.serviceType = 'salon';
-
-        if (!state.appendingOrderId && state.clients.length === 0 && !locationText) {
-            showNotification('âš ï¸ Ingresa al menos un cliente en la orden', 'error');
-            return;
-        }
-
-        const submitBtn = elements.posSubmitOrderBtn || elements.sendToKitchenBtn || document.getElementById('posSubmitOrderBtn');
-        const origText = submitBtn ? submitBtn.innerHTML : '';
-        if (submitBtn) {
-            submitBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Generando...';
-            submitBtn.disabled = true;
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
 
         try {
             const config = StorageManager.getConfig();
@@ -3609,6 +3520,8 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
 
 
 

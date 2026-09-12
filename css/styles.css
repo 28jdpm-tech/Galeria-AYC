@@ -4303,18 +4303,9 @@ option {
     cursor: pointer;
 }
 
-.dynamic-card {
-    background: white;
-    color: #333;
-    border: 1px solid #e2e8f0;
-    order: 0;
-}
-.dynamic-card.active {
-    background: var(--active-check);
-    color: white;
-    border-color: var(--active-check);
-    order: -1;
-}
+.dynamic-card { background: rgba(0,0,0,0.3); color: #cbd5e1; border: none; order: 0; transition: all 0.2s; }
+.dynamic-card.active { background: var(--active-check); color: white; order: -1; }
+
 
 
 
