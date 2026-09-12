@@ -3,7 +3,7 @@
 // ============================================
 
 const FOODX_DATA = {
-    businessName: 'PANADERÃA & CAFÃ‰ X',
+    businessName: 'GALERÍA AYC',
     businessSubtitle: 'SISTEMA POS PRO',
 
     // Multi-sector Categories
