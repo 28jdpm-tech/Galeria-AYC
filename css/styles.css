@@ -4359,3 +4359,22 @@ option {
     max-width: 100% !important;
     margin: 0 !important;
 }
+
+/* Make the total to charge row pop out */
+.payment-total-row {
+    background: linear-gradient(135deg, var(--primary-color, #1e293b), var(--secondary-color, #0f172a)) !important;
+    color: white !important;
+    border-radius: var(--radius-lg) !important;
+    margin: var(--space-md) 0 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    padding: var(--space-md) var(--space-lg) !important;
+}
+.payment-total-row span:first-child {
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+}
+.payment-total {
+    font-size: 1.5rem !important;
+    color: var(--accent-gold, #fbbf24) !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
