@@ -679,7 +679,7 @@ function renderSplitUI() {
         const submitBtn = elements.posSubmitOrderBtn || elements.sendToKitchenBtn || document.getElementById('posSubmitOrderBtn');
         const origText = submitBtn ? submitBtn.innerHTML : '';
         if (submitBtn) {
-            submitBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Enviando...';
+            submitBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Generando...';
             submitBtn.disabled = true;
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
@@ -762,8 +762,15 @@ function renderSplitUI() {
                 };
 
                 StorageManager.addOrder(newOrder);
-                showNotification(`âœ… Pedido ${newOrder.orderNumber} enviado a cocina`);
-                showTicketModal(newOrder);
+                showNotification('Pedido ' + newOrder.orderNumber + ' generado');
+                state.currentPage = 'checkout';
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                const chkPage = document.getElementById('page-checkout');
+                if (chkPage) chkPage.classList.add('active');
+                elements.drawerItems.forEach(i => i.classList.remove('active'));
+                const chkTab = Array.from(elements.drawerItems).find(i => i.dataset.page === 'checkout');
+                if (chkTab) chkTab.classList.add('active');
+                renderCheckoutPage();
             }
 
             clearPosCart(false);
@@ -3559,6 +3566,10 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
+
+
 
 
 
