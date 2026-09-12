@@ -4310,3 +4310,24 @@ option {
 
 
 
+
+/* Fix for payment method cards on mobile */
+.method-card {
+    font-size: 0.75rem !important;
+    padding: 8px 4px !important;
+    word-break: break-word;
+    line-height: 1.2;
+}
+@media (max-width: 480px) {
+    .method-label {
+        min-width: 65px !important;
+    }
+    .method-card {
+        font-size: 0.65rem !important;
+        padding: 6px 2px !important;
+    }
+    .method-card i {
+        width: 16px !important;
+        height: 16px !important;
+    }
+}
