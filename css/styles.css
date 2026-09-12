@@ -4,10 +4,10 @@
 
 :root {
     /* Colors - Dark Theme */
-    --bg-primary: #0a1628;
-    --bg-secondary: #0f2137;
-    --bg-card: #0d1f35;
-    --bg-input: #0a1628;
+    --bg-primary: #e0f2fe;
+    --bg-secondary: #f0f9ff;
+    --bg-card: #ffffff;
+    --bg-input: #ffffff;
 
     /* Brand Colors */
     --accent-primary: #1e6b8a;
@@ -30,13 +30,13 @@
     --status-ready-bg: rgba(16, 185, 129, 0.15);
 
     /* Text Colors */
-    --text-primary: #ffffff;
-    --text-secondary: #8ba3bc;
-    --text-muted: #5a7a99;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
 
     /* Border Colors */
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-default: rgba(255, 255, 255, 0.12);
+    --border-subtle: #cbd5e1;
+    --border-default: #94a3b8;
 
     /* Spacing */
     --space-xs: 4px;
@@ -2577,8 +2577,7 @@ select.date-picker-input {
 /* Fix for invisible options in dark theme */
 select,
 option {
-    background-color: #1e1e2d !important;
-    color: #ffffff !important;
+    background-color: var(--bg-input) !important; color: var(--text-primary) !important;
 }
 
 .search-date-btn {
@@ -4091,8 +4090,7 @@ option {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--bg-primary);
-    color: white;
+    background: var(--bg-primary); color: var(--text-primary);
     font-family: 'Inter', sans-serif;
     padding: 0;
 }
@@ -4303,8 +4301,11 @@ option {
     cursor: pointer;
 }
 
-.dynamic-card { background: rgba(0,0,0,0.3); color: #cbd5e1; border: none; order: 0; transition: all 0.2s; }
-.dynamic-card.active { background: var(--active-check); color: white; order: -1; }
+.dynamic-card { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-subtle); order: 0; transition: all 0.2s; }
+.dynamic-card.active { background: var(--active-check); color: white; border-color: var(--active-check); order: -1; }
+
+
+
 
 
 
