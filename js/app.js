@@ -387,8 +387,32 @@ document.addEventListener('DOMContentLoaded', () => {
 function renderPosClientTabs() {
     const el = document.getElementById('posClientsTabs');
     if (!el) return;
-    el.innerHTML = state.clients.map(client => `<button type="button" class="pos-client-pill ${client === state.activeClient ? 'active' : ''}" onclick="window.switchClient('${client}')">${client}</button>`).join('');
+    el.innerHTML = state.clients.map(client => `
+        <button type="button" class="pos-client-pill ${client === state.activeClient ? 'active' : ''}" style="display: flex; align-items: center; gap: 8px; padding-right: 8px;" onclick="window.switchClient('${client}')">
+            <span>${client}</span>
+            ${state.clients.length > 1 ? `<div onclick="window.removeClient(event, '${client}')" style="display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,0.1);"><i data-lucide="x" style="width: 12px; height: 12px;"></i></div>` : ''}
+        </button>
+    `).join('');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
+
+window.removeClient = function(e, client) {
+    e.stopPropagation();
+    if (state.clients.length <= 1) return;
+    
+    if (confirm(`¿Eliminar al cliente ${client} y todos sus productos seleccionados?`)) {
+        state.clients = state.clients.filter(c => c !== client);
+        state.cart = state.cart.filter(item => item.clientName !== client);
+        
+        if (state.activeClient === client) {
+            window.switchClient(state.clients[0]);
+        } else {
+            renderPosClientTabs();
+            renderSplitUI();
+            if (typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
+        }
+    }
+};
 window.switchClient = function(client) {
     state.activeClient = client;
     renderPosClientTabs();
@@ -450,10 +474,25 @@ window.switchClient = function(client) {
         renderPosCart();
     }
 
+        window.clearCategorySearch = function(catId) {
+        const inputEl = document.getElementById('search-input-' + catId);
+        if (inputEl) {
+            inputEl.value = '';
+            window.filterCategory(inputEl, catId);
+            inputEl.focus();
+        }
+    };
+
     window.filterCategory = function(inputEl, catId) {
-    const term = inputEl.value.toLowerCase();
-    const content = document.getElementById('col-content-' + catId);
-    if (!content) return;
+        const term = inputEl.value.toLowerCase();
+        
+        const clearBtn = document.getElementById('clear-search-' + catId);
+        if (clearBtn) {
+            clearBtn.style.display = term.length > 0 ? 'flex' : 'none';
+        }
+
+        const content = document.getElementById('col-content-' + catId);
+        if (!content) return;
     
     const cards = content.querySelectorAll('.split-card');
     cards.forEach(card => {
@@ -501,9 +540,12 @@ function renderSplitUI() {
             <div style="background: ${colors.bg}; border: 1px solid ${colors.border}; border-radius: 8px; padding: 12px; text-align: center; font-weight: 800; color: ${colors.text}; text-transform: uppercase; font-size: 0.9rem;">
                 ${catName}
             </div>
-            <div style="display: flex; align-items: center; background: white; border: 1px solid var(--border-subtle); border-radius: 8px; padding: 6px 12px; min-height: 40px;">
+                        <div style="display: flex; align-items: center; background: white; border: 1px solid var(--border-subtle); border-radius: 8px; padding: 6px 12px; min-height: 40px; position: relative;">
                 <i data-lucide="search" style="width: 16px; height: 16px; color: #94a3b8;"></i>
-                <input type="text" placeholder="Buscar..." oninput="window.filterCategory(this, '${catId}')" style="border: none; outline: none; width: 100%; padding: 4px; font-size: 0.85rem; margin-left: 8px;">
+                <input type="text" id="search-input-${catId}" placeholder="Buscar..." oninput="window.filterCategory(this, '${catId}')" style="border: none; outline: none; width: 100%; padding: 4px; font-size: 0.85rem; margin-left: 8px; padding-right: 24px;">
+                <div id="clear-search-${catId}" onclick="window.clearCategorySearch('${catId}')" style="display: none; position: absolute; right: 8px; cursor: pointer; padding: 4px; border-radius: 50%; background: #f1f5f9; align-items: center; justify-content: center;">
+                    <i data-lucide="x" style="width: 14px; height: 14px; color: #64748b;"></i>
+                </div>
             </div>
             <div class="category-col-content" id="col-content-${catId}" style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; padding-bottom: 20px; padding-right: 4px;">`;
         
@@ -3503,6 +3545,9 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
+
 
 
 
