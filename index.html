@@ -525,7 +525,7 @@
                         <div class="report-section">
                             <div class="section-header">
                                 <i data-lucide="layers"></i>
-                                <h3>Ventas por CategorÃ­a</h3>
+                                <h3>Ventas por Categoría</h3>
                             </div>
                             <div class="category-sales-list" id="categorySalesList"></div>
                         </div>
@@ -657,7 +657,7 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm);">
                             <div style="grid-column: 1 / -1;">
                                 <label
-                                    style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: block;">CategorÃ­a</label>
+                                    style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Categoría</label>
                                 <select id="expenseCategory"
                                     style="width: 100%; padding: 10px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary); font-size: 0.9rem;">
                                     <!-- Populated dynamically from admin categories -->
@@ -776,14 +776,13 @@
             <!-- Admin Page -->
             <div class="page" id="page-admin">
                 <div class="page-title-bar">
-                    <h2>AdministraciÃ³n del Sistema</h2>
+                    <h2>Administración del Sistema</h2>
                 </div>
 
                 <div class="admin-tabs">
-                    <button class="admin-tab active" data-tab="categories">CategorÃ­as</button>
+                    <button class="admin-tab active" data-tab="categories">Categorías</button>
                     <button class="admin-tab" data-tab="flavors">Productos</button>
-                    <button class="admin-tab" data-tab="extras">Adicionales</button>
-                    <button class="admin-tab" data-tab="observations">Observaciones</button>
+                    
                     <button class="admin-tab" data-tab="expense-cats">Egresos</button>
                     <button class="admin-tab" data-tab="security">Seguridad</button>
                 </div>
@@ -792,7 +791,7 @@
                     <!-- Categories Panel -->
                     <div class="admin-panel active" id="panel-categories">
                         <div class="panel-header">
-                            <h3>Gestionar CategorÃ­as</h3>
+                            <h3>Gestionar Categorías</h3>
                             <button class="btn-add" id="addCategoryBtn">
                                 <i data-lucide="plus"></i> Nueva CategorÃ­a
                             </button>
@@ -814,38 +813,10 @@
                         </button>
                     </div>
 
-                    <!-- Extras Panel -->
-                    <div class="admin-panel" id="panel-extras">
-                        <div class="panel-header">
-                            <h3>Gestionar Adicionales</h3>
-                            <select id="adminCategorySelectExtras" class="admin-category-selector">
-                                <!-- Categories populated via JS -->
-                            </select>
-                        </div>
-                        <div class="admin-list" id="adminExtrasList"></div>
-                        <button class="btn-add-inline" id="addExtraBtn">
-                            <i data-lucide="plus"></i> Agregar Adicional
-                        </button>
-                    </div>
-
-                    <!-- Observations Panel -->
-                    <div class="admin-panel" id="panel-observations">
-                        <div class="panel-header">
-                            <h3>Gestionar Observaciones</h3>
-                            <select id="adminCategorySelectObs" class="admin-category-selector">
-                                <!-- Categories populated via JS -->
-                            </select>
-                        </div>
-                        <div class="admin-list" id="adminObsList"></div>
-                        <button class="btn-add-inline" id="addObsBtn">
-                            <i data-lucide="plus"></i> Agregar ObservaciÃ³n
-                        </button>
-                    </div>
-
                     <!-- Expense Categories Panel -->
                     <div class="admin-panel" id="panel-expense-cats">
                         <div class="panel-header">
-                            <h3>CategorÃ­as de Egresos</h3>
+                            <h3>Categorías de Egresos</h3>
                         </div>
                         <div id="expenseCatManager"></div>
                     </div>
@@ -1084,6 +1055,15 @@ function forceCloseLogin() {
 </script></body>
 
 </html>
+
+
+
+
+
+
+
+
+
 
 
 

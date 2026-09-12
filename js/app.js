@@ -743,7 +743,7 @@ function renderSplitUI() {
                         paid: false
                     };
                     StorageManager.addOrder(partialOrder);
-                    showNotification(`AdiciÃ³n agregada al pedido ${originalOrder.orderNumber}`);
+                    showNotification(`Adición agregada al pedido ${originalOrder.orderNumber}`);
                 }
                 state.appendingOrderId = null;
                         } else {
@@ -1458,7 +1458,7 @@ function renderSplitUI() {
             if (!selectedPaymentOrder) return;
 
             const performDelete = async () => {
-                if (confirm(`Â¿EstÃ¡s seguro de que deseas eliminar permanentemente el pedido ${selectedPaymentOrder.orderNumber}?`)) {
+                if (confirm(`¿Estás seguro de que deseas eliminar permanentemente el pedido ${selectedPaymentOrder.orderNumber}?`)) {
                     await StorageManager.deleteOrder(selectedPaymentOrder.id);
                     showNotification(`Pedido ${selectedPaymentOrder.orderNumber} eliminado`);
                     elements.paymentModal.classList.add('hidden');
@@ -2222,7 +2222,7 @@ function renderSplitUI() {
             if (!selectedHistoryOrder) return;
 
             const performDelete = async () => {
-                if (confirm(`Â¿EstÃ¡s seguro de que deseas eliminar permanentemente el pedido ${selectedHistoryOrder.orderNumber}?`)) {
+                if (confirm(`¿Estás seguro de que deseas eliminar permanentemente el pedido ${selectedHistoryOrder.orderNumber}?`)) {
                     await StorageManager.deleteOrder(selectedHistoryOrder.id);
                     showNotification(`Pedido ${selectedHistoryOrder.orderNumber} eliminado`);
                     elements.historyOrderModal.classList.add('hidden');
@@ -2685,8 +2685,8 @@ function renderSplitUI() {
                         <thead>
                             <tr style="background: var(--bg-tertiary);">
                                 <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Fecha</th>
-                                <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">CategorÃ­a</th>
-                                <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">DescripciÃ³n</th>
+                                <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Categoría</th>
+                                <th style="padding: 10px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Descripción</th>
                                 <th style="padding: 10px 12px; text-align: center; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Cant.</th>
                                 <th style="padding: 10px 12px; text-align: right; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Unit.</th>
                                 <th style="padding: 10px 12px; text-align: right; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Total</th>
@@ -2761,7 +2761,7 @@ function renderSplitUI() {
             <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
                 <thead>
                     <tr style="background: var(--bg-tertiary);">
-                        <th style="padding: 8px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase;">Nombre de CategorÃ­a</th>
+                        <th style="padding: 8px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase;">Nombre de Categoría</th>
                         <th style="padding: 8px 6px; width: 60px; text-align: center; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase;">Acciones</th>
                     </tr>
                 </thead>
@@ -2822,7 +2822,7 @@ function renderSplitUI() {
 
         cats.push({ id, label, emoji: 'ðŸ“Œ' });
         StorageManager.saveExpenseCategories(cats);
-        showNotification(`CategorÃ­a "${label}" creada`);
+        showNotification(`Categoría "${label}" creada`);
         renderExpensesPage();
     };
 
@@ -2836,16 +2836,16 @@ function renderSplitUI() {
 
         cat.label = newLabel.trim() || cat.label;
         StorageManager.saveExpenseCategories(cats);
-        showNotification(`CategorÃ­a actualizada: ${cat.label}`);
+        showNotification(`Categoría actualizada: ${cat.label}`);
         renderExpensesPage();
     };
 
     window.deleteExpenseCategory = function (catId) {
         const performDelete = () => {
-            if (!confirm('Â¿Eliminar esta categorÃ­a de egreso?')) return;
+            if (!confirm('¿Eliminar esta categorÃ­a de egreso?')) return;
             const cats = StorageManager.getExpenseCategories().filter(c => c.id !== catId);
             StorageManager.saveExpenseCategories(cats);
-            showNotification('CategorÃ­a eliminada');
+            showNotification('Categoría eliminada');
             renderExpensesPage();
         };
 
@@ -2946,7 +2946,7 @@ function renderSplitUI() {
     // Delete expense (global handler)
     window.deleteExpense = function (expenseId) {
         const performDelete = async () => {
-            if (confirm('Â¿Eliminar este egreso?')) {
+            if (confirm('¿Eliminar este egreso?')) {
                 await StorageManager.deleteExpense(expenseId);
                 showNotification('Egreso eliminado');
                 renderExpensesPage();
@@ -3008,8 +3008,8 @@ function renderSplitUI() {
 
         const CATS = getExpenseCatMap();
 
-        // Build data rows matching the table: Fecha | CategorÃ­a | DescripciÃ³n | Cant. | V. Unit. | Total
-        const rows = [['Fecha', 'CategorÃ­a', 'DescripciÃ³n', 'Cant.', 'V. Unit.', 'Total']];
+        // Build data rows matching the table: Fecha | Categoría | Descripción | Cant. | V. Unit. | Total
+        const rows = [['Fecha', 'Categoría', 'Descripción', 'Cant.', 'V. Unit.', 'Total']];
 
         let total = 0;
         expenses.forEach(expense => {
@@ -3040,8 +3040,8 @@ function renderSplitUI() {
         // Set column widths
         ws['!cols'] = [
             { wch: 12 },  // Fecha
-            { wch: 20 },  // CategorÃ­a
-            { wch: 30 },  // DescripciÃ³n
+            { wch: 20 },  // Categoría
+            { wch: 30 },  // Descripción
             { wch: 8 },   // Cant.
             { wch: 12 },  // V. Unit.
             { wch: 12 }   // Total
@@ -3214,7 +3214,7 @@ function renderSplitUI() {
     window.editAdminItem = function (type, id, parentId = null) {
         adminEditContext = { type, id, parentId };
         const config = StorageManager.getConfig();
-        const displayType = type === 'flavor' ? 'Producto' : (type === 'category' ? 'CategorÃ­a' : (type === 'extra' ? 'Adicional' : 'ObservaciÃ³n'));
+        const displayType = type === 'flavor' ? 'Producto' : (type === 'category' ? 'Categoría' : (type === 'extra' ? 'Adicional' : 'Observación'));
         elements.adminModalTitle.textContent = `Editar ${displayType}`;
         let html = '';
         if (type === 'category') {
@@ -3232,7 +3232,7 @@ function renderSplitUI() {
                     <div class="form-group"><label>Precio ($)</label><input type="number" id="editPrice" value="${item.price}"></div>`;
         } else if (type === 'observation') {
             const item = config.observations[parentId].find(o => o.id === id);
-            html = `<div class="form-group"><label>DescripciÃ³n / Nota</label><input type="text" id="editName" value="${item.name}"></div>
+            html = `<div class="form-group"><label>Descripción / Nota</label><input type="text" id="editName" value="${item.name}"></div>
                     <div class="form-group"><label>Precio Extra si aplica ($)</label><input type="number" id="editPrice" value="${item.price || 0}"></div>`;
         }
         elements.adminModalBody.innerHTML = html;
@@ -3240,7 +3240,7 @@ function renderSplitUI() {
     };
 
     window.deleteAdminItem = function (type, id, pId) {
-        if (!confirm('Â¿Seguro que deseas eliminar este elemento?')) return;
+        if (!confirm('¿Seguro que deseas eliminar este elemento?')) return;
         const config = StorageManager.getConfig();
         if (type === 'category') {
             config.categories = config.categories.filter(c => c.id !== id);
@@ -3394,7 +3394,7 @@ function renderSplitUI() {
         elements.addObsBtn.onclick = () => {
             const catId = elements.adminCategorySelectObs.value;
             adminEditContext = { type: 'observation', id: null, parentId: catId };
-            elements.adminModalTitle.textContent = 'Nueva ObservaciÃ³n';
+            elements.adminModalTitle.textContent = 'Nueva Observación';
             elements.adminModalBody.innerHTML = `
                 <div class="form-group"><label>Nombre</label><input type="text" id="editName"></div>
                 <div class="form-group"><label>Precio</label><input type="number" id="editPrice" value="0"></div>
@@ -3508,7 +3508,7 @@ function renderSplitUI() {
 
     if (resetOrderCounterBtn) {
         resetOrderCounterBtn.addEventListener('click', async () => {
-            if (confirm('Â¿EstÃ¡s seguro que deseas reiniciar el contador de pedidos a #001?')) {
+            if (confirm('¿Estás seguro que deseas reiniciar el contador de pedidos a #001?')) {
                 await resetOrderCounter();
             }
         });
@@ -3622,6 +3622,8 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
 
 
 
