@@ -358,16 +358,16 @@ const StorageManager = {
     getExpenseCategories() {
         const data = localStorage.getItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
         if (data) return JSON.parse(data);
-        // Default categories
+                // Default categories
         return [
-            { id: 'nomina', label: 'NÃ³mina', emoji: 'ðŸ’°' },
-            { id: 'materia_prima', label: 'Materia Prima', emoji: 'ðŸ¥©' },
-            { id: 'arriendo', label: 'Arriendo', emoji: 'ðŸ ' },
-            { id: 'suministros', label: 'Suministros', emoji: 'ðŸ“¦' },
-            { id: 'bebidas', label: 'Bebidas', emoji: 'ðŸ¥¤' },
-            { id: 'servicios', label: 'Servicios PÃºblicos', emoji: 'ðŸ’¡' },
-            { id: 'transporte', label: 'Transporte', emoji: 'ðŸšš' },
-            { id: 'otros', label: 'Otros', emoji: 'ðŸ“Œ' }
+            { id: 'nomina', label: 'Nómina', emoji: '👩‍🍳' },
+            { id: 'materia_prima', label: 'Materia Prima', emoji: '🥩' },
+            { id: 'arriendo', label: 'Arriendo', emoji: '🏠' },
+            { id: 'suministros', label: 'Suministros', emoji: '📦' },
+            { id: 'bebidas', label: 'Bebidas', emoji: '🥤' },
+            { id: 'servicios', label: 'Servicios Públicos', emoji: '💡' },
+            { id: 'transporte', label: 'Transporte', emoji: '🛵' },
+            { id: 'otros', label: 'Otros', emoji: '📌' }
         ];
     },
 
@@ -447,6 +447,8 @@ StorageManager.configLoaded = false;
     StorageManager.configLoaded = true;
     window.dispatchEvent(new CustomEvent('configLoadedFromCloud')); // Kept name for compatibility
 })();
+
+
 
 
 

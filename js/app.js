@@ -1834,7 +1834,8 @@ function renderSplitUI() {
 
                     html += `</tbody></table></div>`;
                     container.innerHTML = html;
-                }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
             }
         }
 
@@ -1886,7 +1887,8 @@ function renderSplitUI() {
 
             html += `</tbody></table></div>`;
             container.innerHTML = html;
-        };
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
 
         renderPaymentTable('paymentTableEfectivo', paymentList.efectivo, '#16a34a');
         renderPaymentTable('paymentTableNequi', paymentList.nequi, '#60a5fa');
@@ -2551,7 +2553,7 @@ function renderSplitUI() {
     }
 
     // ============================================
-    // Expenses (Egresos)
+    // Expenses (Gastos)
     // ============================================
 
     // Helper to get categories as a map { id: { label, emoji } }
@@ -2656,7 +2658,7 @@ function renderSplitUI() {
             summaryEl.innerHTML = Object.entries(categoryTotals)
                 .sort((a, b) => b[1] - a[1])
                 .map(([catId, amount]) => {
-                    const cat = CATS[catId] || { label: catId, emoji: 'ðŸ“Œ' };
+                    const cat = CATS[catId] || { label: catId, emoji: '📌' };
                     const idx = allCatsForColors.findIndex(c => c.id === catId);
                     const color = expenseCatColors[idx % expenseCatColors.length] || '#6b7280';
                     return `
@@ -2675,7 +2677,7 @@ function renderSplitUI() {
                 listEl.innerHTML = `
                     <div class="empty-state" style="padding: 2rem; text-align: center;">
                         <i data-lucide="wallet" style="width: 40px; height: 40px; color: var(--text-muted); margin-bottom: 8px;"></i>
-                        <p style="color: var(--text-muted);">No hay egresos registrados</p>
+                        <p style="color: var(--text-muted);">No hay Gastos registrados</p>
                     </div>
                 `;
             } else {
@@ -2697,7 +2699,7 @@ function renderSplitUI() {
                 `;
 
                 expenses.forEach(expense => {
-                    const cat = CATS[expense.category] || { label: 'Otros', emoji: 'ðŸ“Œ' };
+                    const cat = CATS[expense.category] || { label: 'Otros', emoji: '📌' };
                     const dateObj = new Date(expense.date || expense.createdAt);
                     const dateStr = dateObj.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: '2-digit' });
                     const qty = expense.qty || 1;
@@ -2761,7 +2763,7 @@ function renderSplitUI() {
             <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
                 <thead>
                     <tr style="background: var(--bg-tertiary);">
-                        <th style="padding: 8px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase;">Nombre de Categoría</th>
+                        <th style="padding: 8px 12px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase;">Nombre de categoría</th>
                         <th style="padding: 8px 6px; width: 60px; text-align: center; color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase;">Acciones</th>
                     </tr>
                 </thead>
@@ -2773,13 +2775,13 @@ function renderSplitUI() {
                 <tr style="border-top: 1px solid var(--border-subtle); background: var(--bg-secondary);">
                     <td style="padding: 8px 12px; color: var(--text-primary); font-size: 0.85rem;">${cat.label}</td>
                     <td style="padding: 8px 6px; text-align: center; white-space: nowrap;">
-                        <button onclick="window.editExpenseCategory('${cat.id}')"
-                            style="background: none; border: none; color: var(--accent-primary); cursor: pointer; padding: 4px; font-size: 1rem;" title="Editar">
-                            âœï¸
+                                                                        <button onclick="window.editExpenseCategory('${cat.id}')"
+                            style="background: none; border: none; color: var(--accent-primary); cursor: pointer; padding: 4px;" title="Editar">
+                            <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
                         </button>
                         <button onclick="window.deleteExpenseCategory('${cat.id}')"
-                            style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; margin-left: 2px; font-size: 1rem;" title="Eliminar">
-                            ðŸ—‘ï¸
+                            style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; margin-left: 2px;" title="Eliminar">
+                            <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
                         </button>
                     </td>
                 </tr>
@@ -2801,6 +2803,7 @@ function renderSplitUI() {
         `;
 
         container.innerHTML = html;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     // Global handlers for category management
@@ -2820,7 +2823,7 @@ function renderSplitUI() {
             return;
         }
 
-        cats.push({ id, label, emoji: 'ðŸ“Œ' });
+        cats.push({ id, label, emoji: '📌' });
         StorageManager.saveExpenseCategories(cats);
         showNotification(`Categoría "${label}" creada`);
         renderExpensesPage();
@@ -2842,7 +2845,7 @@ function renderSplitUI() {
 
     window.deleteExpenseCategory = function (catId) {
         const performDelete = () => {
-            if (!confirm('¿Eliminar esta categorÃ­a de egreso?')) return;
+            if (!confirm('¿Eliminar esta categorÃ­a de Gasto?')) return;
             const cats = StorageManager.getExpenseCategories().filter(c => c.id !== catId);
             StorageManager.saveExpenseCategories(cats);
             showNotification('Categoría eliminada');
@@ -2880,7 +2883,7 @@ function renderSplitUI() {
             }
 
             const CATS = getExpenseCatMap();
-            const cat = CATS[category] || { label: 'Otros', emoji: 'ðŸ“Œ' };
+            const cat = CATS[category] || { label: 'Otros', emoji: '📌' };
 
             StorageManager.addExpense({
                 category: category,
@@ -2891,7 +2894,7 @@ function renderSplitUI() {
                 date: date + 'T12:00:00'
             });
 
-            showNotification(`Egreso registrado: ${formatPrice(amount)}`);
+            showNotification(`Gasto registrado: ${formatPrice(amount)}`);
 
             // Clear form
             document.getElementById('expenseDescription').value = '';
@@ -2946,9 +2949,9 @@ function renderSplitUI() {
     // Delete expense (global handler)
     window.deleteExpense = function (expenseId) {
         const performDelete = async () => {
-            if (confirm('¿Eliminar este egreso?')) {
+            if (confirm('¿Eliminar este Gasto?')) {
                 await StorageManager.deleteExpense(expenseId);
-                showNotification('Egreso eliminado');
+                showNotification('Gasto eliminado');
                 renderExpensesPage();
             }
         };
@@ -2994,7 +2997,7 @@ function renderSplitUI() {
         }
 
         if (expenses.length === 0) {
-            showNotification('âš ï¸ No hay egresos para descargar', 'error');
+            showNotification('âš ï¸ No hay Gastos para descargar', 'error');
             return;
         }
 
@@ -3013,7 +3016,7 @@ function renderSplitUI() {
 
         let total = 0;
         expenses.forEach(expense => {
-            const cat = CATS[expense.category] || { label: 'Otros', emoji: 'ðŸ“Œ' };
+            const cat = CATS[expense.category] || { label: 'Otros', emoji: '📌' };
             const dateObj = new Date(expense.date || expense.createdAt);
             const dateStr = dateObj.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
             const qty = expense.qty || 1;
@@ -3048,13 +3051,13 @@ function renderSplitUI() {
         ];
 
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Egresos');
+        XLSX.utils.book_append_sheet(wb, ws, 'Gastos');
 
         // Generate filename
         const now = new Date();
         const dateFile = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-        XLSX.writeFile(wb, `Egresos_${periodLabel}_${dateFile}.xlsx`);
+        XLSX.writeFile(wb, `Gastos_${periodLabel}_${dateFile}.xlsx`);
 
         showNotification('ðŸ“¥ Excel descargado');
     };
@@ -3220,7 +3223,7 @@ function renderSplitUI() {
         if (type === 'category') {
             const item = config.categories.find(c => c.id === id);
             const itemType = (item && item.type) ? item.type : 'comida';
-            html = '<div class="form-group"><label>Nombre de Categoría</label><input type="text" id="editName" value="' + item.name + '"></div>';;
+            html = '<div class="form-group"><label>Nombre de categoría</label><input type="text" id="editName" value="' + item.name + '"></div>';;
         } else if (type === 'flavor') {
             const allProds = getActiveProductsList(config);
             const item = allProds.find(p => p.id === id) || (config.flavors[parentId] && config.flavors[parentId].find(f => f.id === id)) || { name: '', price: 0 };
@@ -3361,7 +3364,7 @@ function renderSplitUI() {
         elements.addCategoryBtn.onclick = () => {
             adminEditContext = { type: 'category', id: null };
             elements.adminModalTitle.textContent = 'Nueva Categoría';
-            elements.adminModalBody.innerHTML = '<div class="form-group"><label>Nombre de Categoría</label><input type="text" id="editName" placeholder="Ej: Panes Especiales"></div>';
+            elements.adminModalBody.innerHTML = '<div class="form-group"><label>Nombre de categoría</label><input type="text" id="editName" placeholder="Ej: Panes Especiales"></div>';
             elements.adminModal.classList.add('open');
         };
     }
@@ -3622,6 +3625,9 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
+
 
 
 

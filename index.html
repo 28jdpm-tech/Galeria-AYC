@@ -70,7 +70,7 @@
                     </a>
                     <a href="#" class="drawer-item" data-page="expenses">
                         <i data-lucide="wallet"></i>
-                        <span>Egresos</span>
+                        <span>Gastos</span>
                     </a>
 
                     <a href="#" class="drawer-item" data-page="admin">
@@ -633,10 +633,10 @@
                 </div>
             </div>
 
-            <!-- Expenses (Egresos) Page -->
+            <!-- Expenses (Gastos) Page -->
             <div class="page" id="page-expenses">
                 <div class="page-title-bar">
-                    <h2>Egresos / Costos</h2>
+                    <h2>Gastos / Costos</h2>
                 </div>
 
                 <!-- Expense Form -->
@@ -649,7 +649,7 @@
                                 style="color: var(--text-primary); font-size: 1rem; display: flex; align-items: center; gap: 8px; margin: 0;">
                                 <i data-lucide="plus-circle"
                                     style="width: 20px; height: 20px; color: var(--accent-primary);"></i>
-                                Registrar Egreso
+                                Registrar Gasto
                             </h3>
                             <input type="date" id="expenseDate"
                                 style="width: auto; padding: 6px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary); font-size: 0.8rem; box-sizing: border-box;">
@@ -693,7 +693,7 @@
                         <button id="addExpenseBtn"
                             style="margin-top: var(--space-md); width: 100%; padding: 12px; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; border-radius: var(--radius-md); font-weight: 700; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
                             <i data-lucide="minus-circle" style="width: 18px; height: 18px;"></i>
-                            Registrar Egreso
+                            Registrar Gasto
                         </button>
                     </div>
                 </div>
@@ -727,7 +727,7 @@
                             style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border-radius: var(--radius-lg); padding: var(--space-md);">
                             <div
                                 style="font-size: 0.7rem; color: rgba(255,255,255,0.8); font-weight: 600; text-transform: uppercase;">
-                                Egresos (Gastos)</div>
+                                Gastos (Gastos)</div>
                             <div id="expenseTotalAmount" style="font-size: 1.2rem; font-weight: 800; color: white;">$0
                             </div>
                         </div>
@@ -753,10 +753,10 @@
                 <div style="padding: 0 var(--space-md) var(--space-md);">
                     <div
                         style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-sm);">
-                        <h3 style="color: var(--text-primary); font-size: 0.9rem; margin: 0;">Registro de Egresos</h3>
+                        <h3 style="color: var(--text-primary); font-size: 0.9rem; margin: 0;">Registro de Gastos</h3>
                         <button onclick="window.downloadExpensesExcel()"
                             style="background: none; border: none; color: var(--accent-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;"
-                            title="Descargar Excel Egresos">
+                            title="Descargar Excel Gastos">
                             <i data-lucide="file-spreadsheet"></i>
                         </button>
                     </div>
@@ -783,7 +783,7 @@
                     <button class="admin-tab active" data-tab="categories">Categorías</button>
                     <button class="admin-tab" data-tab="flavors">Productos</button>
                     
-                    <button class="admin-tab" data-tab="expense-cats">Egresos</button>
+                    <button class="admin-tab" data-tab="expense-cats">Gastos</button>
                     <button class="admin-tab" data-tab="security">Seguridad</button>
                 </div>
 
@@ -816,7 +816,7 @@
                     <!-- Expense Categories Panel -->
                     <div class="admin-panel" id="panel-expense-cats">
                         <div class="panel-header">
-                            <h3>Categorías de Egresos</h3>
+                            <h3>Categorías de Gastos</h3>
                         </div>
                         <div id="expenseCatManager"></div>
                     </div>
@@ -1055,6 +1055,7 @@ function forceCloseLogin() {
 </script></body>
 
 </html>
+
 
 
 
