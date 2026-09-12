@@ -497,7 +497,7 @@ function renderSplitUI() {
         const colors = palette[colorIndex % palette.length];
         colorIndex++;
         
-        let colHtml = `<div class="category-col" style="flex: 1; min-width: 250px; max-width: 400px; display: flex; flex-direction: column; gap: 10px; height: 100%; --active-bg: ${colors.bg}; --active-text: ${colors.text}; --active-border: ${colors.border}; --active-check: ${colors.check};">
+        let colHtml = `<div class="category-col" style="flex: 1; min-width: 15ch; max-width: 18ch; display: flex; flex-direction: column; gap: 10px; height: 100%; --active-bg: ${colors.bg}; --active-text: ${colors.text}; --active-border: ${colors.border}; --active-check: ${colors.check};">
             <div style="background: ${colors.bg}; border: 1px solid ${colors.border}; border-radius: 8px; padding: 12px; text-align: center; font-weight: 800; color: ${colors.text}; text-transform: uppercase; font-size: 0.9rem;">
                 ${catName}
             </div>
@@ -3503,6 +3503,7 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
 
 
 
