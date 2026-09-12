@@ -1,17 +1,20 @@
-// ============================================
+﻿// ============================================
 // FoodX POS - Storage Manager
 // ============================================
 
+// Unique prefix for this specific application to prevent crossover
+const PREFIX = 'galeria_';
+
 const STORAGE_KEYS = {
-    ORDERS: 'foodx_orders',
-    SETTINGS: 'foodx_settings',
-    CATEGORIES: 'foodx_categories_v3',
-    PRODUCTS: 'foodx_products_v3',
-    FLAVORS: 'foodx_flavors_v3',
-    EXTRAS: 'foodx_extras_v3',
-    PRICES: 'foodx_prices_v3',
-    EXPENSES: 'foodx_expenses',
-    EXPENSE_CATEGORIES: 'foodx_expense_categories'
+    ORDERS: PREFIX + 'orders',
+    SETTINGS: PREFIX + 'settings',
+    CATEGORIES: PREFIX + 'categories_v3',
+    PRODUCTS: PREFIX + 'products_v3',
+    FLAVORS: PREFIX + 'flavors_v3',
+    EXTRAS: PREFIX + 'extras_v3',
+    PRICES: PREFIX + 'prices_v3',
+    EXPENSES: PREFIX + 'expenses',
+    EXPENSE_CATEGORIES: PREFIX + 'expense_categories'
 };
 
 const StorageManager = {
@@ -67,7 +70,7 @@ const StorageManager = {
         let products = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
         let flavors = localStorage.getItem(STORAGE_KEYS.FLAVORS);
         let extras = localStorage.getItem(STORAGE_KEYS.EXTRAS);
-        let observations = localStorage.getItem('foodx_observations');
+        let observations = localStorage.getItem('galeria_observations');
         let prices = localStorage.getItem(STORAGE_KEYS.PRICES);
 
         // Auto-upgrade to multi-sector catalog if storage has old categories or no products
@@ -85,7 +88,7 @@ const StorageManager = {
             extras: extras ? JSON.parse(extras) : FOODX_DATA.extras,
             observations: observations ? JSON.parse(observations) : FOODX_DATA.observations,
             prices: prices ? JSON.parse(prices) : (FOODX_DATA.prices || {}),
-            adminPassword: localStorage.getItem('foodx_admin_password') || '1234'
+            adminPassword: localStorage.getItem('galeria_admin_password') || '1234'
         };
 
         // Migration: If extras or observations are arrays, convert to objects keyed by category
@@ -136,9 +139,9 @@ const StorageManager = {
         if (config.products) localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(config.products));
         if (config.flavors) localStorage.setItem(STORAGE_KEYS.FLAVORS, JSON.stringify(config.flavors));
         if (config.extras) localStorage.setItem(STORAGE_KEYS.EXTRAS, JSON.stringify(config.extras));
-        if (config.observations) localStorage.setItem('foodx_observations', JSON.stringify(config.observations));
+        if (config.observations) localStorage.setItem('galeria_observations', JSON.stringify(config.observations));
         if (config.prices) localStorage.setItem(STORAGE_KEYS.PRICES, JSON.stringify(config.prices));
-        if (config.adminPassword) localStorage.setItem('foodx_admin_password', config.adminPassword);
+        if (config.adminPassword) localStorage.setItem('galeria_admin_password', config.adminPassword);
 
         // Update the global object too so the app uses latest
         Object.assign(FOODX_DATA, config);
@@ -232,7 +235,7 @@ const StorageManager = {
     },
 
     // ============================================
-    // Expense Categories (Categorías de Egresos)
+    // Expense Categories (CategorÃ­as de Egresos)
     // ============================================
 
     getExpenseCategories() {
@@ -240,14 +243,14 @@ const StorageManager = {
         if (data) return JSON.parse(data);
         // Default categories
         return [
-            { id: 'nomina', label: 'Nómina', emoji: '💰' },
-            { id: 'materia_prima', label: 'Materia Prima', emoji: '🥩' },
-            { id: 'arriendo', label: 'Arriendo', emoji: '🏠' },
-            { id: 'suministros', label: 'Suministros', emoji: '📦' },
-            { id: 'bebidas', label: 'Bebidas', emoji: '🥤' },
-            { id: 'servicios', label: 'Servicios Públicos', emoji: '💡' },
-            { id: 'transporte', label: 'Transporte', emoji: '🚚' },
-            { id: 'otros', label: 'Otros', emoji: '📌' }
+            { id: 'nomina', label: 'NÃ³mina', emoji: 'ðŸ’°' },
+            { id: 'materia_prima', label: 'Materia Prima', emoji: 'ðŸ¥©' },
+            { id: 'arriendo', label: 'Arriendo', emoji: 'ðŸ ' },
+            { id: 'suministros', label: 'Suministros', emoji: 'ðŸ“¦' },
+            { id: 'bebidas', label: 'Bebidas', emoji: 'ðŸ¥¤' },
+            { id: 'servicios', label: 'Servicios PÃºblicos', emoji: 'ðŸ’¡' },
+            { id: 'transporte', label: 'Transporte', emoji: 'ðŸšš' },
+            { id: 'otros', label: 'Otros', emoji: 'ðŸ“Œ' }
         ];
     },
 
@@ -327,3 +330,6 @@ StorageManager.configLoaded = false;
     StorageManager.configLoaded = true;
     window.dispatchEvent(new CustomEvent('configLoadedFromCloud')); // Kept name for compatibility
 })();
+
+
+

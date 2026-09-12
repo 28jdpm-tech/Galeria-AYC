@@ -1,16 +1,16 @@
-// ============================================
+﻿// ============================================
 // FoodX POS - Data Configuration
 // ============================================
 
 const FOODX_DATA = {
-    businessName: 'PANADERÍA & CAFÉ X',
+    businessName: 'PANADERÃA & CAFÃ‰ X',
     businessSubtitle: 'SISTEMA POS PRO',
 
     // Multi-sector Categories
     categories: [
-        { id: 'panaderia', name: 'Panadería', active: true },
-        { id: 'reposteria', name: 'Repostería', active: true },
-        { id: 'cafeteria', name: 'Cafetería', active: true },
+        { id: 'panaderia', name: 'PanaderÃ­a', active: true },
+        { id: 'reposteria', name: 'ReposterÃ­a', active: true },
+        { id: 'cafeteria', name: 'CafeterÃ­a', active: true },
         { id: 'bebidas', name: 'Bebidas', active: true },
         { id: 'desayunos', name: 'Desayunos & Platos', active: true }
     ],
@@ -41,7 +41,7 @@ const FOODX_DATA = {
             { id: 'e7', name: 'Sirope Vainilla', price: 1500, active: true }
         ],
         desayunos: [
-            { id: 'e8', name: 'Porción Tocineta', price: 3000, active: true },
+            { id: 'e8', name: 'PorciÃ³n Tocineta', price: 3000, active: true },
             { id: 'e9', name: 'Queso Extra', price: 2000, active: true },
             { id: 'e10', name: 'Huevo Adicional', price: 2000, active: true }
         ],
@@ -57,7 +57,7 @@ const FOODX_DATA = {
             { id: 'o3', name: 'Blando', active: true }
         ],
         cafeteria: [
-            { id: 'o4', name: 'Sin azúcar', active: true },
+            { id: 'o4', name: 'Sin azÃºcar', active: true },
             { id: 'o5', name: 'Poco dulce', active: true },
             { id: 'o6', name: 'Bien caliente', active: true },
             { id: 'o7', name: 'Tibio', active: true }
@@ -65,7 +65,7 @@ const FOODX_DATA = {
         bebidas: [
             { id: 'o8', name: 'Sin hielo', active: true },
             { id: 'o9', name: 'Con hielo', active: true },
-            { id: 'o10', name: 'Sin azúcar', active: true }
+            { id: 'o10', name: 'Sin azÃºcar', active: true }
         ],
         desayunos: [
             { id: 'o11', name: 'Huevos revueltos', active: true },
@@ -85,9 +85,9 @@ const FOODX_DATA = {
 
     // Service types
     serviceTypes: [
-        { id: 'salon', name: 'Salón', label: 'Mesa' },
+        { id: 'salon', name: 'SalÃ³n', label: 'Mesa' },
         { id: 'llevar', name: 'Para Llevar', label: 'Nombre' },
-        { id: 'domicilio', name: 'Domicilio', label: 'Dirección/Nombre' }
+        { id: 'domicilio', name: 'Domicilio', label: 'DirecciÃ³n/Nombre' }
     ]
 };
 
@@ -107,8 +107,8 @@ function generateId() {
 }
 
 // Generate order number with daily reset - SYNCHRONIZED via Firebase
-let orderCounter = parseInt(localStorage.getItem('foodx_order_counter') || '0');
-let lastOrderDate = localStorage.getItem('foodx_last_order_date') || '';
+let orderCounter = parseInt(localStorage.getItem('galeria_order_counter') || '0');
+let lastOrderDate = localStorage.getItem('galeria_last_order_date') || '';
 
 // Get local date key (YYYY-MM-DD in local timezone)
 function getLocalDateKey() {
@@ -126,15 +126,15 @@ async function getNextOrderNumber() {
 // Local fallback function (original logic)
 function generateOrderNumberLocal() {
     const today = new Date().toDateString();
-    const lastDate = localStorage.getItem('foodx_last_order_date');
+    const lastDate = localStorage.getItem('galeria_last_order_date');
 
     if (lastDate !== today) {
         orderCounter = 0;
-        localStorage.setItem('foodx_last_order_date', today);
+        localStorage.setItem('galeria_last_order_date', today);
     }
 
     orderCounter++;
-    localStorage.setItem('foodx_order_counter', orderCounter.toString());
+    localStorage.setItem('galeria_order_counter', orderCounter.toString());
     return '#' + String(orderCounter).padStart(3, '0');
 }
 
@@ -143,3 +143,4 @@ function generateOrderNumber() {
     // Return the async result, but for backward compatibility also have sync fallback
     return getNextOrderNumber();
 }
+

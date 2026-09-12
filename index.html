@@ -1059,7 +1059,7 @@
 <script>
 function forceLogin() {
     const pwd = document.getElementById('adminPasswordInput').value;
-    const configStr = localStorage.getItem('foodx_admin_password') || '1234';
+    const configStr = localStorage.getItem('galeria_admin_password') || '1234';
     if (pwd === configStr) {
         document.getElementById('adminLoginModal').classList.remove('open');
         if (window.appState) {
@@ -1085,6 +1085,7 @@ function forceCloseLogin() {
 </script></body>
 
 </html>
+
 
 
 

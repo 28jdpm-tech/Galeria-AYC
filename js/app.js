@@ -3367,7 +3367,7 @@ function renderSplitUI() {
         const currentOrderCounterEl = document.getElementById('currentOrderCounter');
         if (!currentOrderCounterEl) return;
 
-        const localCounter = localStorage.getItem('foodx_order_counter') || '0';
+        const localCounter = localStorage.getItem('galeria_order_counter') || '0';
         currentOrderCounterEl.textContent = '#' + String(parseInt(localCounter)).padStart(3, '0');
     }
 
@@ -3375,8 +3375,8 @@ function renderSplitUI() {
     async function resetOrderCounter() {
         try {
             // Reset local storage
-            localStorage.setItem('foodx_order_counter', '0');
-            localStorage.setItem('foodx_last_order_date', new Date().toDateString());
+            localStorage.setItem('galeria_order_counter', '0');
+            localStorage.setItem('galeria_last_order_date', new Date().toDateString());
 
             showNotification('âœ… Contador reiniciado a #001');
             loadCurrentOrderCounter();
@@ -3502,6 +3502,7 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
 
 
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'foodx-v31';
+﻿const CACHE_NAME = 'foodx-v31';
 const ASSETS = [
     './',
     './index.html',
@@ -41,3 +41,4 @@ self.addEventListener('fetch', (e) => {
         fetch(e.request).catch(() => caches.match(e.request))
     );
 });
+

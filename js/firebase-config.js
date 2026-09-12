@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // FoodX POS - Firebase Configuration
 // ============================================
 
@@ -12,15 +12,16 @@ const firebaseConfig = {
     measurementId: "G-TB9GJ6RP79"
 };
 
-// Inicializar Firebase (Usando versión Compat para compatibilidad directa con script tags)
+// Inicializar Firebase (Usando versiÃ³n Compat para compatibilidad directa con script tags)
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // Habilitar persistencia offline
 db.enablePersistence().catch((err) => {
     if (err.code == 'failed-precondition') {
-        console.warn('Persistencia falló: múltiples pestañas abiertas');
+        console.warn('Persistencia fallÃ³: mÃºltiples pestaÃ±as abiertas');
     } else if (err.code == 'unimplemented') {
         console.warn('El navegador no soporta persistencia');
     }
 });
+
