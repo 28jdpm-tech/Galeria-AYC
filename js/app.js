@@ -2402,7 +2402,7 @@ function renderSplitUI() {
 
                 let name = (item.name || 'ITEM').toUpperCase();
                 const priceStr = formatPrice(totalP);
-                const prefix = qty + 'x ';
+                const prefix = (item.clientName || qty + 'x') + ' ';
                 
                 // Allow exactly 1 space between name and price
                 const maxNameLen = W - priceStr.length - prefix.length - 1;
@@ -2512,7 +2512,7 @@ function renderSplitUI() {
 
                 let name = (item.name || 'ITEM').toUpperCase();
                 const priceStr = formatPrice(totalP);
-                const prefix = qty + 'x ';
+                const prefix = (item.clientName || qty + 'x') + ' ';
                 
                 // Allow exactly 1 space between name and price
                 const maxNameLen = W - priceStr.length - prefix.length - 1;
@@ -3728,6 +3728,7 @@ function renderSplitUI() {
             showNotification("Error al limpiar historial", "error");
         }
     };
+
 
 
 
