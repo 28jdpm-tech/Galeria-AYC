@@ -665,11 +665,13 @@ function renderSplitUI() {
             return;
         }
 
+        const locationInput = document.getElementById('posLocationInput');
+        const locationText = locationInput ? locationInput.value.trim().toUpperCase() : '';
         const customerText = state.clients.join(' - ').trim().toUpperCase();
 
         if (!state.serviceType) state.serviceType = 'salon';
 
-        if (!state.appendingOrderId && state.clients.length === 0) {
+        if (!state.appendingOrderId && state.clients.length === 0 && !locationText) {
             showNotification('âš ï¸ Ingresa al menos un cliente en la orden', 'error');
             return;
         }
@@ -750,7 +752,7 @@ function renderSplitUI() {
                     customerName: orderIdentifier,
                     items: items,
                     status: 'pending',
-                    totalPrice: state.orderTotal,
+                    totalPrice: items.reduce((sum, item) => sum + item.price, 0),
                     createdBy: 'Cajero 1',
                     needsPrint: true,
                     printed: false,
@@ -765,6 +767,10 @@ function renderSplitUI() {
             }
 
             clearPosCart(false);
+            if (locationInput) locationInput.value = '';
+            state.clients = ['P1'];
+            state.activeClient = 'P1';
+            renderPosClientTabs();
         } catch (err) {
             console.error('Error submitting order:', err);
             showNotification('âš ï¸ Error al procesar pedido', 'error');
@@ -3553,6 +3559,10 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
+
+
 
 
 
