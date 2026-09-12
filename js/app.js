@@ -681,7 +681,7 @@ function renderSplitUI() {
 
         const locationInput = document.getElementById('posLocationInput');
         const locationText = locationInput ? locationInput.value.trim().toUpperCase() : '';
-        const customerText = state.clients.join(' - ').trim().toUpperCase();
+        const customerText = ''; // Removed clients suffix as requested
 
         if (!state.serviceType) state.serviceType = 'salon';
 
@@ -3623,6 +3623,7 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
 
 
 
