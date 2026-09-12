@@ -730,16 +730,24 @@ function renderSplitUI() {
                     showNotification(`AdiciÃ³n agregada al pedido ${originalOrder.orderNumber}`);
                 }
                 state.appendingOrderId = null;
-            } else {
+                        } else {
                 const seqNum = await generateOrderNumber();
-                const orderIdentifier = customerText || seqNum;
+                
+                let orderIdentifier = seqNum;
+                if (locationText && customerText) {
+                    orderIdentifier = `${locationText} | ${customerText}`;
+                } else if (locationText) {
+                    orderIdentifier = locationText;
+                } else if (customerText) {
+                    orderIdentifier = customerText;
+                }
 
                 const newOrder = {
                     orderNumber: orderIdentifier,
                     sequenceNumber: seqNum,
                     serviceType: state.serviceType,
-                    customerInfo: customerText,
-                    customerName: customerText,
+                    customerInfo: orderIdentifier,
+                    customerName: orderIdentifier,
                     items: items,
                     status: 'pending',
                     totalPrice: state.orderTotal,
@@ -3545,6 +3553,9 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
+
 
 
 
