@@ -2323,174 +2323,211 @@ function renderSplitUI() {
         if (elements.historyTotalDesechables) elements.historyTotalDesechables.textContent = formatPrice(totalDesechables);
     }
 
-    function generateTicketText(order) {
+        function generateTicketText(order) {
         if (!order || !order.items) return 'Error: Pedido sin productos';
-        const TICKET_WIDTH = 26;
-        const labels = { salon: 'SALÃ“N', llevar: 'LLEVAR', domicilio: 'DOMICILIO' };
+        const W = 32;
+        const labels = { salon: 'SALON', llevar: 'LLEVAR', domicilio: 'DOMICILIO' };
         const now = new Date(order.createdAt || Date.now());
         const dateStr = now.toLocaleDateString('es-CO');
         const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 
         const center = (str) => {
             str = String(str).toUpperCase();
-            if (str.length >= TICKET_WIDTH) return str.substring(0, TICKET_WIDTH);
-            const left = Math.floor((TICKET_WIDTH - str.length) / 2);
+            if (str.length >= W) return str.substring(0, W);
+            const left = Math.floor((W - str.length) / 2);
             return ' '.repeat(left) + str;
         };
 
-        const justify = (leftStr, rightStr) => {
-            const left = String(leftStr).toUpperCase();
-            const right = String(rightStr).toUpperCase();
-            const spaceNeeded = TICKET_WIDTH - (left.length + right.length);
-            if (spaceNeeded < 1) return left + ' ' + right;
-            return left + ' '.repeat(spaceNeeded) + right;
+        const justify = (l, r) => {
+            l = String(l); r = String(r);
+            const sp = W - l.length - r.length;
+            return sp < 1 ? l + ' ' + r : l + ' '.repeat(sp) + r;
         };
 
-        const topDivider = 'â”'.repeat(TICKET_WIDTH);
-        const subDivider = 'â”€'.repeat(TICKET_WIDTH);
+        const line = '-'.repeat(W);
+        const doubleLine = '='.repeat(W);
 
-        let ticket = '';
-        ticket += topDivider + '\n';
+        let t = '';
+        t += doubleLine + '\n';
+        t += center('GALERIA AYC') + '\n';
+        t += center('CAFE & RESTAURANTE') + '\n';
+        t += doubleLine + '\n';
+
         if (order.isAppending) {
-            const sType = labels[order.serviceType] || 'SALÃ“N';
-            ticket += center(`*** ${sType} ***`) + '\n';
-            ticket += center('(ADICIÃ“N)') + '\n';
-        } else {
-            ticket += center('COMANDA DE COCINA') + '\n';
-            ticket += center('POS PRO') + '\n';
+            t += center('*** ADICION ***') + '\n';
         }
 
-        ticket += center(`ORDEN: ${order.orderNumber || '---'}`) + '\n';
-        if (order.sequenceNumber && order.sequenceNumber !== order.orderNumber) {
-            ticket += center(`TURNO: ${order.sequenceNumber}`) + '\n';
-        }
+        t += center('PEDIDO #' + (order.sequenceNumber || order.orderNumber || '---')) + '\n';
+        t += line + '\n';
+        t += justify(dateStr, timeStr) + '\n';
 
-        ticket += topDivider + '\n';
-        ticket += justify(dateStr, timeStr) + '\n';
-        ticket += center(`TIPO: ${labels[order.serviceType] || 'SALÃ“N'}`) + '\n';
         if (order.customerInfo) {
-            ticket += center(`MESA/CLI: ${order.customerInfo}`) + '\n';
+            t += justify('MESA/CLIENTE:', '') + '\n';
+            t += center(order.customerInfo) + '\n';
         }
+        t += line + '\n';
+
+        // Group items by client
         const itemsByClient = {};
         order.items.forEach(item => {
-            const cName = item.clientName || 'CLIENTE';
+            const cName = item.clientName || 'GENERAL';
             if (!itemsByClient[cName]) itemsByClient[cName] = [];
             itemsByClient[cName].push(item);
         });
 
-        for (const [clientName, cItems] of Object.entries(itemsByClient)) {
-            ticket += subDivider + '\n';
-            ticket += center(`=== ${clientName.toUpperCase()} ===`) + '\n';
-            ticket += subDivider + '\n';
-            ticket += 'CANT PRODUCTO         VALOR\n';
-            ticket += subDivider + '\n';
+        const clientKeys = Object.keys(itemsByClient);
+        let grandTotal = 0;
 
+        for (const [clientName, cItems] of Object.entries(itemsByClient)) {
+            if (clientKeys.length > 1) {
+                t += '\n';
+                t += center('[ ' + clientName.toUpperCase() + ' ]') + '\n';
+                t += line + '\n';
+            }
+
+            let clientSubtotal = 0;
             cItems.forEach(item => {
-                const qty = `${item.qty}x`.padEnd(5);
-                let name = (item.name || item.categoryName || 'ITEM').toUpperCase();
-                const price = formatPrice(item.price || (item.unitPrice * item.qty));
-                
-                if (name.length > 13) name = name.substring(0, 13);
-                name = name.padEnd(14);
-                
-                ticket += `${qty}${name}${price.padStart(7)}\n`;
+                const qty = item.qty || 1;
+                const unitP = item.unitPrice || item.price || 0;
+                const totalP = item.price || (unitP * qty);
+                clientSubtotal += totalP;
+
+                let name = (item.name || 'ITEM').toUpperCase();
+                if (name.length > W - 2) name = name.substring(0, W - 2);
+
+                // Line 1: Product name
+                t += '  ' + name + '\n';
+                // Line 2: qty x unit = total
+                const detail = '  ' + qty + ' x ' + formatPrice(unitP);
+                t += justify(detail, formatPrice(totalP)) + '\n';
+
                 if (item.notes && item.notes.trim() !== '') {
-                    ticket += `  * NOTA: ${item.notes.toUpperCase()}\n`;
-                }
-                if (item.observations && item.observations.trim() !== '' && item.observations !== item.notes) {
-                    ticket += `  * OBS: ${item.observations.toUpperCase()}\n`;
+                    t += '  * ' + item.notes.toUpperCase() + '\n';
                 }
                 if (item.extras && item.extras.length > 0) {
                     const ext = Array.isArray(item.extras) ? item.extras.map(e => typeof e === 'object' ? e.name : e).join(', ') : item.extras;
-                    ticket += `  + ADI: ${ext.toUpperCase()}\n`;
+                    t += '  + ' + ext.toUpperCase() + '\n';
                 }
             });
+
+            if (clientKeys.length > 1) {
+                t += justify('  SUBTOTAL ' + clientName.toUpperCase() + ':', formatPrice(clientSubtotal)) + '\n';
+            }
+            grandTotal += clientSubtotal;
         }
 
-        ticket += subDivider + '\n';
-        ticket += justify('TOTAL:', formatPrice(order.totalPrice)) + '\n';
-        ticket += topDivider + '\n';
-        ticket += center('Â¡GRACIAS POR SU COMPRA!') + '\n';
-        ticket += topDivider + '\n\n\n.';
+        t += doubleLine + '\n';
+        t += justify('TOTAL:', formatPrice(order.totalPrice || grandTotal)) + '\n';
+        t += doubleLine + '\n';
 
-        return ticket;
+        if (order.paymentMethod) {
+            t += justify('PAGO:', order.paymentMethod.toUpperCase()) + '\n';
+            t += line + '\n';
+        }
+
+        t += '\n';
+        t += center('GRACIAS POR SU COMPRA!') + '\n';
+        t += center('GALERIA AYC') + '\n';
+        t += '\n\n.';
+
+        return t;
     }
 
-    function generateInvoiceText(order) {
+        function generateInvoiceText(order) {
         if (!order || !order.items) return 'Error: Pedido sin productos';
-        const TICKET_WIDTH = 26;
-        const labels = { salon: 'SALÃ“N', llevar: 'LLEVAR', domicilio: 'DOMICILIO' };
-        const now = new Date(order.createdAt || Date.now());
+        const W = 32;
+        const labels = { salon: 'SALON', llevar: 'LLEVAR', domicilio: 'DOMICILIO' };
+        const now = new Date();
         const dateStr = now.toLocaleDateString('es-CO');
         const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 
         const center = (str) => {
             str = String(str).toUpperCase();
-            if (str.length >= TICKET_WIDTH) return str.substring(0, TICKET_WIDTH);
-            const left = Math.floor((TICKET_WIDTH - str.length) / 2);
+            if (str.length >= W) return str.substring(0, W);
+            const left = Math.floor((W - str.length) / 2);
             return ' '.repeat(left) + str;
         };
 
-        const justify = (leftStr, rightStr) => {
-            const left = String(leftStr).toUpperCase();
-            const right = String(rightStr).toUpperCase();
-            const spaceNeeded = TICKET_WIDTH - (left.length + right.length);
-            if (spaceNeeded < 1) return left + ' ' + right;
-            return left + ' '.repeat(spaceNeeded) + right;
+        const justify = (l, r) => {
+            l = String(l); r = String(r);
+            const sp = W - l.length - r.length;
+            return sp < 1 ? l + ' ' + r : l + ' '.repeat(sp) + r;
         };
 
-        const topDivider = 'â”'.repeat(TICKET_WIDTH);
-        const subDivider = 'â”€'.repeat(TICKET_WIDTH);
+        const line = '-'.repeat(W);
+        const doubleLine = '='.repeat(W);
 
-        let ticket = '';
-        ticket += center('FACTURA DE VENTA') + '\n';
-        ticket += center('POS PRO') + '\n';
-        ticket += center(`ORDEN: ${order.orderNumber || '---'}`) + '\n';
-        if (order.sequenceNumber && order.sequenceNumber !== order.orderNumber) {
-            ticket += center(`TURNO: ${order.sequenceNumber}`) + '\n';
-        }
-        ticket += topDivider + '\n';
-        ticket += justify(dateStr, timeStr) + '\n';
-        ticket += center(`TIPO: ${labels[order.serviceType] || 'SALÃ“N'}`) + '\n';
+        let t = '';
+        t += doubleLine + '\n';
+        t += center('FACTURA DE VENTA') + '\n';
+        t += center('GALERIA AYC') + '\n';
+        t += center('CAFE & RESTAURANTE') + '\n';
+        t += doubleLine + '\n';
+
+        t += center('PEDIDO #' + (order.sequenceNumber || order.orderNumber || '---')) + '\n';
+        t += line + '\n';
+        t += justify('FECHA PAGO:', dateStr) + '\n';
+        t += justify('HORA PAGO:', timeStr) + '\n';
+
         if (order.customerInfo) {
-            ticket += center(`MESA/CLI: ${order.customerInfo}`) + '\n';
+            t += justify('MESA/CLIENTE:', '') + '\n';
+            t += center(order.customerInfo) + '\n';
         }
+        t += line + '\n';
+
+        // Group items by client
         const itemsByClient = {};
         order.items.forEach(item => {
-            const cName = item.clientName || 'CLIENTE';
+            const cName = item.clientName || 'GENERAL';
             if (!itemsByClient[cName]) itemsByClient[cName] = [];
             itemsByClient[cName].push(item);
         });
 
-        for (const [clientName, cItems] of Object.entries(itemsByClient)) {
-            ticket += subDivider + '\n';
-            ticket += center(`=== ${clientName.toUpperCase()} ===`) + '\n';
-            ticket += subDivider + '\n';
-            ticket += 'CANT PRODUCTO         VALOR\n';
-            ticket += subDivider + '\n';
+        const clientKeys = Object.keys(itemsByClient);
+        let grandTotal = 0;
 
+        for (const [clientName, cItems] of Object.entries(itemsByClient)) {
+            if (clientKeys.length > 1) {
+                t += '\n';
+                t += center('[ ' + clientName.toUpperCase() + ' ]') + '\n';
+                t += line + '\n';
+            }
+
+            let clientSubtotal = 0;
             cItems.forEach(item => {
-                const qty = `${item.qty}x`.padEnd(5);
-                let name = (item.name || item.categoryName || 'ITEM').toUpperCase();
-                const price = formatPrice(item.price || (item.unitPrice * item.qty));
-                
-                if (name.length > 13) name = name.substring(0, 13);
-                name = name.padEnd(14);
-                
-                ticket += `${qty}${name}${price.padStart(7)}\n`;
-                if (item.notes && item.notes.trim() !== '') {
-                    ticket += `  * ${item.notes.toUpperCase()}\n`;
-                }
+                const qty = item.qty || 1;
+                const unitP = item.unitPrice || item.price || 0;
+                const totalP = item.price || (unitP * qty);
+                clientSubtotal += totalP;
+
+                let name = (item.name || 'ITEM').toUpperCase();
+                if (name.length > W - 2) name = name.substring(0, W - 2);
+
+                t += '  ' + name + '\n';
+                const detail = '  ' + qty + ' x ' + formatPrice(unitP);
+                t += justify(detail, formatPrice(totalP)) + '\n';
             });
+
+            if (clientKeys.length > 1) {
+                t += justify('  SUBTOTAL ' + clientName.toUpperCase() + ':', formatPrice(clientSubtotal)) + '\n';
+            }
+            grandTotal += clientSubtotal;
         }
 
-        ticket += subDivider + '\n';
-        ticket += justify('TOTAL:', formatPrice(order.totalPrice)) + '\n';
-        ticket += topDivider + '\n';
-        ticket += center('GRACIAS POR SU COMPRA') + '\n';
-        ticket += topDivider + '\n\n\n.';
+        t += doubleLine + '\n';
+        t += justify('TOTAL PAGADO:', formatPrice(order.totalPrice || grandTotal)) + '\n';
+        
+        if (order.paymentMethod) {
+            t += justify('METODO DE PAGO:', order.paymentMethod.toUpperCase()) + '\n';
+        }
+        t += doubleLine + '\n';
 
-        return ticket;
+        t += '\n';
+        t += center('GRACIAS POR SU VISITA!') + '\n';
+        t += center('GALERIA AYC') + '\n';
+        t += '\n\n.';
+
+        return t;
     }
 
     // ============================================
@@ -3566,6 +3603,8 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
 
 
 
