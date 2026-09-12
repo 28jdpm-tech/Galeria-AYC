@@ -90,18 +90,18 @@
             <!-- New Order Page (Multi-Sector POS) -->
             <div class="page active" id="page-new-order">
                                                 <div class="pos-workspace pos-workspace-split" id="posWorkspace">
-                                        <!-- Top Header: Location & People -->
-                    <div class="pos-split-header" style="flex-direction: column; align-items: stretch; gap: 10px;">
-                        <div class="pos-location-select" style="width: 100%;">
-                            <input type="text" id="posLocationInput" placeholder="Mesa o Nombre del Cliente..." style="padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: 8px; font-weight: bold; width: 100%; box-sizing: border-box; color: #333; background: white; outline: none; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); font-size: 0.95rem;">
-                        </div>
-                        <div class="pos-people-tabs" style="width: 100%;">
-                            <button type="button" class="btn-add-person" id="btnAddClient">
-                                <i data-lucide="plus"></i>
-                            </button>
-                            <div id="posClientsTabs" class="pos-clients-scroll">
-                                <!-- P1, P2 pills go here -->
-                            </div>
+                                                            <!-- Top Header: Location/Customer Name -->
+                    <div class="pos-split-header" style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; background: white; display: block;">
+                        <input type="text" id="posLocationInput" placeholder="Mesa o Nombre del Cliente..." style="padding: 14px 18px; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: bold; width: 100%; box-sizing: border-box; color: #1e293b; background: #f8fafc; outline: none; font-size: 1.05rem; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+                    </div>
+                    
+                    <!-- Sub Header: People Tabs -->
+                    <div class="pos-people-tabs-container" style="padding: 12px 20px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box;">
+                        <button type="button" class="btn-add-person" id="btnAddClient" style="background: white; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: background 0.2s;">
+                            <i data-lucide="plus" style="color: #475569; width: 20px; height: 20px;"></i>
+                        </button>
+                        <div id="posClientsTabs" class="pos-clients-scroll" style="display: flex; gap: 8px; overflow-x: auto; flex: 1; align-items: center; min-height: 40px;">
+                            <!-- P1, P2 pills go here -->
                         </div>
                     </div>
 
@@ -1079,6 +1079,7 @@ function forceCloseLogin() {
 </script></body>
 
 </html>
+
 
 
 
