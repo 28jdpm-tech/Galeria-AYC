@@ -2393,13 +2393,16 @@ function renderSplitUI() {
                 clientSubtotal += totalP;
 
                 let name = (item.name || 'ITEM').toUpperCase();
-                if (name.length > W - 2) name = name.substring(0, W - 2);
-
-                // Line 1: Product name
-                t += '  ' + name + '\n';
-                // Line 2: qty x unit = total
-                const detail = '  ' + qty + ' x ' + formatPrice(unitP);
-                t += justify(detail, formatPrice(totalP)) + '\n';
+                const priceStr = formatPrice(totalP);
+                const prefix = qty + 'x ';
+                
+                // Allow exactly 1 space between name and price
+                const maxNameLen = W - priceStr.length - prefix.length - 1;
+                if (name.length > maxNameLen) {
+                    name = name.substring(0, maxNameLen);
+                }
+                
+                t += justify(prefix + name, priceStr) + '\n';
 
                 if (item.notes && item.notes.trim() !== '') {
                     t += '  * ' + item.notes.toUpperCase() + '\n';
@@ -2501,11 +2504,16 @@ function renderSplitUI() {
                 clientSubtotal += totalP;
 
                 let name = (item.name || 'ITEM').toUpperCase();
-                if (name.length > W - 2) name = name.substring(0, W - 2);
-
-                t += '  ' + name + '\n';
-                const detail = '  ' + qty + ' x ' + formatPrice(unitP);
-                t += justify(detail, formatPrice(totalP)) + '\n';
+                const priceStr = formatPrice(totalP);
+                const prefix = qty + 'x ';
+                
+                // Allow exactly 1 space between name and price
+                const maxNameLen = W - priceStr.length - prefix.length - 1;
+                if (name.length > maxNameLen) {
+                    name = name.substring(0, maxNameLen);
+                }
+                
+                t += justify(prefix + name, priceStr) + '\n';
             });
 
             if (clientKeys.length > 1) {
@@ -3603,6 +3611,8 @@ function renderSplitUI() {
     if(typeof updateOrderTotal === "function") updateOrderTotal(); else renderPosCart();
     
   });
+
+
 
 
 
